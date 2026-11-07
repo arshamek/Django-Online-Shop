@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Maral Online Shop — demo storefront
 
 A Persian, right-to-left fashion marketplace demo ( homepage, shop with filters,
@@ -115,3 +116,7 @@ React Hook Form + Zod, lucide-react.
 - **Port 5173 is busy** — `npm run dev -- --port 3000`
 - **Blank page after a change** — run `npm run build` to see the real error message,
   or `npm test` to check the data rules.
+=======
+# Django-Online-Shop
+Custom online shop designed by me
+>>>>>>> 220c6480d388e7adfeb1237df96b649674640e72
