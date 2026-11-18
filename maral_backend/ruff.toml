@@ -1,0 +1,11 @@
+line-length = 120
+target-version = "py312"
+extend-exclude = ["migrations"]
+
+[lint]
+select = ["E", "F", "I", "B", "UP", "DJ"]
+ignore = ["DJ001"]  # nullable CharFields are intentional (filtered-unique columns)
+
+[lint.per-file-ignores]
+"config/settings/*.py" = ["F403", "F405", "E402"]
+"tests/*" = ["B018"]

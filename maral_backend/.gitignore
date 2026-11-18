@@ -1,0 +1,21 @@
+# Secrets - never commit. Only .env.example is tracked.
+.env
+.env.*
+!.env.example
+
+# Python / tooling
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Runtime artefacts
+staticfiles/
+media/
+*.sqlite3
+celerybeat-schedule*
+*.log

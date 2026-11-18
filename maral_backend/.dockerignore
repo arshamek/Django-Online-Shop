@@ -1,0 +1,15 @@
+.env
+.env.*
+!.env.example
+.git
+.venv
+venv
+__pycache__
+*.pyc
+*.sqlite3
+staticfiles
+htmlcov
+.pytest_cache
+.ruff_cache
+celerybeat-schedule*
+docker-compose*.yml

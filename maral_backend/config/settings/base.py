@@ -1,0 +1,352 @@
+"""
+Base settings shared by every environment.
+
+Rules
+-----
+* Every secret / environment-specific value comes from environment variables.
+* This module never reads SECRET_KEY, DEBUG or ALLOWED_HOSTS: each environment
+  module decides how those are sourced (production refuses insecure values).
+* A ``.env`` file is read only when ``DJANGO_READ_DOT_ENV_FILE=true`` (local
+  convenience). Containers/CI inject real environment variables instead.
+"""
+
+from pathlib import Path
+
+import environ
+
+from apps.common.logging_config import build_logging_config, configure_structlog
+
+BASE_DIR = Path(__file__).resolve().parent.parent.parent  # .../maral_backend
+
+env = environ.Env()
+if env.bool("DJANGO_READ_DOT_ENV_FILE", default=False):
+    env.read_env(BASE_DIR / ".env")
+
+APP_VERSION = env("APP_VERSION", default="0.1.0")
+GIT_COMMIT = env("GIT_COMMIT", default="unknown")
+
+# --------------------------------------------------------------------------
+# Applications
+# --------------------------------------------------------------------------
+DJANGO_APPS = [
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+]
+THIRD_PARTY_APPS = [
+    "rest_framework",
+    "django_filters",
+    "corsheaders",
+    "drf_spectacular",
+    "drf_spectacular_sidecar",
+    "django_celery_results",
+]
+LOCAL_APPS = [
+    "apps.common",
+    "apps.accounts",
+]
+INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
+
+AUTH_USER_MODEL = "accounts.User"
+
+MIDDLEWARE = [
+    "apps.common.middleware.RequestIDMiddleware",  # outermost: correlation id for everything below
+    "apps.common.middleware.RequestLoggingMiddleware",
+    "django.middleware.security.SecurityMiddleware",
+    "corsheaders.middleware.CorsMiddleware",  # before anything that can generate responses
+    "whitenoise.middleware.WhiteNoiseMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.locale.LocaleMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+]
+
+ROOT_URLCONF = "config.urls"
+WSGI_APPLICATION = "config.wsgi.application"
+ASGI_APPLICATION = "config.asgi.application"
+
+TEMPLATES = [
+    {
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.debug",
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
+            ],
+        },
+    },
+]
+
+
+# --------------------------------------------------------------------------
+# Database - Microsoft SQL Server through mssql-django (pyodbc + ODBC Driver 18)
+# --------------------------------------------------------------------------
+def _sqlserver_database() -> dict:
+    extra_params = ";".join(
+        [
+            f"Encrypt={env('DB_ENCRYPT', default='yes')}",
+            f"TrustServerCertificate={env('DB_TRUST_SERVER_CERTIFICATE', default='no')}",
+        ]
+    )
+    return {
+        "ENGINE": "mssql",
+        "NAME": env("DB_NAME", default="maral"),
+        "USER": env("DB_USER", default=""),
+        "PASSWORD": env("DB_PASSWORD", default=""),
+        "HOST": env("DB_HOST", default="localhost"),
+        "PORT": env("DB_PORT", default="1433"),
+        "CONN_MAX_AGE": env.int("DB_CONN_MAX_AGE", default=60),
+        "CONN_HEALTH_CHECKS": True,
+        "OPTIONS": {
+            "driver": env("DB_DRIVER", default="ODBC Driver 18 for SQL Server"),
+            "extra_params": extra_params,
+        },
+    }
+
+
+DATABASES = {"default": _sqlserver_database()}
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# --------------------------------------------------------------------------
+# Redis / cache
+# --------------------------------------------------------------------------
+REDIS_URL = env("REDIS_URL", default="redis://localhost:6379/0")
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": env("CACHE_REDIS_URL", default=REDIS_URL),
+        "KEY_PREFIX": "maral",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "SOCKET_CONNECT_TIMEOUT": 2,
+            "SOCKET_TIMEOUT": 2,
+            # Fail open: if Redis is down the cache (and therefore throttling)
+            # degrades instead of turning every request into a 500. The failure is
+            # logged, and /ready/ reports Redis as down. See docs/setup/ENVIRONMENT.md.
+            "IGNORE_EXCEPTIONS": True,
+        },
+    }
+}
+DJANGO_REDIS_LOG_IGNORED_EXCEPTIONS = True
+
+# --------------------------------------------------------------------------
+# Auth / passwords (final end-user auth method is open decision D-6)
+# --------------------------------------------------------------------------
+AUTH_PASSWORD_VALIDATORS = [
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": 10}},
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
+]
+
+# --------------------------------------------------------------------------
+# i18n / time
+# --------------------------------------------------------------------------
+LANGUAGE_CODE = env("LANGUAGE_CODE", default="fa")
+LANGUAGES = [("fa", "Persian"), ("en", "English"), ("ar", "Arabic"), ("tr", "Turkish")]
+TIME_ZONE = "UTC"
+USE_I18N = True
+USE_TZ = True
+
+# --------------------------------------------------------------------------
+# Static files (admin + Swagger UI assets). Media/object storage arrives with the catalogue phase.
+# --------------------------------------------------------------------------
+STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+}
+
+# --------------------------------------------------------------------------
+# Django REST Framework
+# --------------------------------------------------------------------------
+REST_FRAMEWORK = {
+    "DEFAULT_VERSIONING_CLASS": "rest_framework.versioning.URLPathVersioning",
+    "DEFAULT_VERSION": "v1",
+    "ALLOWED_VERSIONS": ["v1"],
+    "VERSION_PARAM": "version",
+    "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
+    "DEFAULT_PARSER_CLASSES": ["rest_framework.parsers.JSONParser"],
+    "DEFAULT_AUTHENTICATION_CLASSES": ["apps.common.api.authentication.SessionAuthentication401"],
+    # Secure default: endpoints are private unless they explicitly opt in with AllowAny.
+    "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": env("THROTTLE_RATE_ANON", default="120/min"),
+        "user": env("THROTTLE_RATE_USER", default="300/min"),
+    },
+    "DEFAULT_PAGINATION_CLASS": "apps.common.api.pagination.StandardPagination",
+    "PAGE_SIZE": 24,
+    "DEFAULT_FILTER_BACKENDS": [
+        "apps.common.api.filters.StrictDjangoFilterBackend",
+        "rest_framework.filters.SearchFilter",
+        "rest_framework.filters.OrderingFilter",
+    ],
+    "SEARCH_PARAM": "q",
+    "ORDERING_PARAM": "sort",
+    "EXCEPTION_HANDLER": "apps.common.api.exceptions.api_exception_handler",
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "TEST_REQUEST_DEFAULT_FORMAT": "json",
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "MaralOnlineShop API",
+    "DESCRIPTION": (
+        "Backend API for MaralOnlineShop. Versioned under `/api/v1/`. "
+        'Errors always use the `{"error": {...}}` envelope; collections use '
+        "`{count, page, page_size, next, previous, results}`."
+    ),
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "SCHEMA_PATH_PREFIX": r"/api/v[0-9]",
+    "COMPONENT_SPLIT_REQUEST": True,
+    "SWAGGER_UI_DIST": "SIDECAR",
+    "SWAGGER_UI_FAVICON_HREF": "SIDECAR",
+    "REDOC_DIST": "SIDECAR",
+    "POSTPROCESSING_HOOKS": [
+        "apps.common.api.schema.add_error_envelope",
+    ],
+}
+API_DOCS_ENABLED = env.bool("API_DOCS_ENABLED", default=True)
+
+# --------------------------------------------------------------------------
+# CORS (browser -> API on a different origin; allow-list only)
+# --------------------------------------------------------------------------
+CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[])
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = [
+    "accept",
+    "accept-language",
+    "accept-currency",
+    "authorization",
+    "content-type",
+    "idempotency-key",
+    "if-none-match",
+    "x-csrftoken",
+    "x-guest-token",
+    "x-request-id",
+]
+CORS_EXPOSE_HEADERS = ["x-request-id", "retry-after", "etag", "location"]
+CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
+
+# --------------------------------------------------------------------------
+# Secure defaults (production tightens further)
+# --------------------------------------------------------------------------
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = "same-origin"
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
+X_FRAME_OPTIONS = "DENY"
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = "Lax"
+DATA_UPLOAD_MAX_MEMORY_SIZE = 2 * 1024 * 1024
+ADMIN_URL = env("DJANGO_ADMIN_URL", default="admin/")
+
+# --------------------------------------------------------------------------
+# Email
+# --------------------------------------------------------------------------
+EMAIL_BACKEND = env("EMAIL_BACKEND", default="django.core.mail.backends.smtp.EmailBackend")
+EMAIL_HOST = env("EMAIL_HOST", default="localhost")
+EMAIL_PORT = env.int("EMAIL_PORT", default=587)
+EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
+EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
+EMAIL_TIMEOUT = 10
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="MaralOnlineShop <no-reply@example.com>")
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
+
+# --------------------------------------------------------------------------
+# Credentials RESERVED for later phases. They are read here so configuration is
+# complete and documented, but NO code consumes them yet and every provider
+# defaults to "fake". Nothing below means an integration exists.
+# --------------------------------------------------------------------------
+EXTERNAL_APIS = {
+    "trendyol_api_key": env("TRENDYOL_API_KEY", default=""),  # only an official API / licensed feed
+    "namshi_api_key": env("NAMSHI_API_KEY", default=""),
+    "currency_rate_provider": env("CURRENCY_RATE_PROVIDER", default="manual"),
+    "currency_rate_api_key": env("CURRENCY_RATE_API_KEY", default=""),
+    "sms_provider": env("SMS_PROVIDER", default="console"),
+    "sms_api_key": env("SMS_API_KEY", default=""),
+}
+AI_SETTINGS = {
+    "provider": env("AI_PROVIDER", default="fake"),
+    "api_key": env("AI_API_KEY", default=""),
+    "model": env("AI_MODEL", default=""),
+    "translation_provider": env("TRANSLATION_PROVIDER", default="fake"),
+    "translation_api_key": env("TRANSLATION_API_KEY", default=""),
+}
+PAYMENT_SETTINGS = {
+    "gateway": env("PAYMENT_GATEWAY", default="fake"),
+    "merchant_id": env("PAYMENT_MERCHANT_ID", default=""),
+    "api_key": env("PAYMENT_API_KEY", default=""),
+    "webhook_secret": env("PAYMENT_WEBHOOK_SECRET", default=""),
+}
+STORAGE_SETTINGS = {
+    "backend": env("STORAGE_BACKEND", default="filesystem"),
+    "endpoint_url": env("S3_ENDPOINT_URL", default=""),
+    "bucket_name": env("S3_BUCKET_NAME", default=""),
+    "access_key_id": env("S3_ACCESS_KEY_ID", default=""),
+    "secret_access_key": env("S3_SECRET_ACCESS_KEY", default=""),
+    "region_name": env("S3_REGION_NAME", default=""),
+}
+
+# --------------------------------------------------------------------------
+# Celery (broker: Redis, results + failed-task tracking: database)
+# --------------------------------------------------------------------------
+CELERY_BROKER_URL = env("CELERY_BROKER_URL", default=REDIS_URL)
+CELERY_RESULT_BACKEND = "django-db"
+CELERY_RESULT_EXTENDED = True  # store task name, args, worker, queue -> useful for failed-task review
+CELERY_RESULT_EXPIRES = 60 * 60 * 24 * 30  # 30 days; Celery's built-in backend_cleanup beat entry prunes
+CELERY_CACHE_BACKEND = "default"
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TIMEZONE = "UTC"
+CELERY_ENABLE_UTC = True
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_ACKS_LATE = True
+CELERY_TASK_REJECT_ON_WORKER_LOST = True
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+CELERY_TASK_TIME_LIMIT = 300
+CELERY_TASK_SOFT_TIME_LIMIT = 270
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+# With acks_late on Redis the visibility timeout must exceed the longest task runtime.
+CELERY_BROKER_TRANSPORT_OPTIONS = {"visibility_timeout": 3600}
+CELERY_WORKER_HIJACK_ROOT_LOGGER = False  # keep our structured logging config in workers
+CELERY_WORKER_SEND_TASK_EVENTS = True  # lets Flower / `celery events` monitor workers
+CELERY_TASK_SEND_SENT_EVENT = True
+CELERY_TASK_DEFAULT_QUEUE = "default"
+# Per-domain queues from the approved architecture. Only `default` carries tasks in Phase 2.
+CELERY_QUEUE_NAMES = ["default", "imports", "translations", "pricing", "notifications"]
+BEAT_HEARTBEAT_SECONDS = env.int("BEAT_HEARTBEAT_SECONDS", default=300)
+CELERY_BEAT_SCHEDULE = {
+    # Static in-code schedule (no DatabaseScheduler -> no extra tables). Proves beat is alive.
+    "common-heartbeat": {
+        "task": "common.heartbeat",
+        "schedule": float(BEAT_HEARTBEAT_SECONDS),
+        "options": {"queue": "default", "expires": BEAT_HEARTBEAT_SECONDS},
+    },
+}
+
+# --------------------------------------------------------------------------
+# Logging (structured JSON; request/correlation ids injected via contextvars)
+# --------------------------------------------------------------------------
+LOG_LEVEL = env("LOG_LEVEL", default="INFO")
+LOG_JSON = env.bool("LOG_JSON", default=True)
+configure_structlog()
+LOGGING = build_logging_config(level=LOG_LEVEL, json_logs=LOG_JSON)
