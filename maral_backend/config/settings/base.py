@@ -46,11 +46,15 @@ THIRD_PARTY_APPS = [
 ]
 LOCAL_APPS = [
     "apps.common",
+    "apps.audit",
     "apps.accounts",
 ]
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 AUTH_USER_MODEL = "accounts.User"
+AUTHENTICATION_BACKENDS = ["apps.accounts.backends.IdentifierBackend"]
+# email is USERNAME_FIELD but only conditionally unique (filtered index, NULLs allowed) - intentional.
+SILENCED_SYSTEM_CHECKS = ["auth.W004"]
 
 MIDDLEWARE = [
     "apps.common.middleware.RequestIDMiddleware",  # outermost: correlation id for everything below
@@ -143,8 +147,16 @@ DJANGO_REDIS_LOG_IGNORED_EXCEPTIONS = True
 # --------------------------------------------------------------------------
 # Auth / passwords (final end-user auth method is open decision D-6)
 # --------------------------------------------------------------------------
+PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.Argon2PasswordHasher",  # new hashes; older hashers still verify and re-hash on login
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+]
+PASSWORD_RESET_TIMEOUT = 60 * 60  # 1 hour (Django's default is 3 days)
 AUTH_PASSWORD_VALIDATORS = [
-    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
+        "OPTIONS": {"user_attributes": ("email", "phone", "first_name", "last_name")},
+    },
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": 10}},
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
@@ -179,16 +191,24 @@ REST_FRAMEWORK = {
     "VERSION_PARAM": "version",
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
     "DEFAULT_PARSER_CLASSES": ["rest_framework.parsers.JSONParser"],
-    "DEFAULT_AUTHENTICATION_CLASSES": ["apps.common.api.authentication.SessionAuthentication401"],
+    "DEFAULT_AUTHENTICATION_CLASSES": ["apps.accounts.authentication.ManagedSessionAuthentication"],
     # Secure default: endpoints are private unless they explicitly opt in with AllowAny.
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
     "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.UserRateThrottle",
     ],
+    "NUM_PROXIES": env.int("TRUSTED_PROXY_COUNT", default=0),  # 0 = ignore X-Forwarded-For (anti-spoofing)
     "DEFAULT_THROTTLE_RATES": {
         "anon": env("THROTTLE_RATE_ANON", default="120/min"),
         "user": env("THROTTLE_RATE_USER", default="300/min"),
+        # Auth endpoints (per client IP; per-account lockout is separate, see services/lockout.py)
+        "auth_login": env("THROTTLE_RATE_AUTH_LOGIN", default="60/hour"),
+        "auth_register": env("THROTTLE_RATE_AUTH_REGISTER", default="10/hour"),
+        "auth_password_reset": env("THROTTLE_RATE_AUTH_PASSWORD_RESET", default="10/hour"),
+        "auth_verify": env("THROTTLE_RATE_AUTH_VERIFY", default="20/hour"),
+        "otp_ip": "10/hour",  # conventions: OTP request 10/hour per IP (+ 3 per 10 min per phone, in the service)
+        "avatar_upload": "20/hour",
     },
     "DEFAULT_PAGINATION_CLASS": "apps.common.api.pagination.StandardPagination",
     "PAGE_SIZE": 24,
@@ -224,6 +244,28 @@ SPECTACULAR_SETTINGS = {
 }
 API_DOCS_ENABLED = env.bool("API_DOCS_ENABLED", default=True)
 
+TRUSTED_PROXY_COUNT = env.int("TRUSTED_PROXY_COUNT", default=0)
+
+# --------------------------------------------------------------------------
+# Accounts
+# --------------------------------------------------------------------------
+FRONTEND_BASE_URL = env("FRONTEND_BASE_URL", default="http://localhost:5173").rstrip("/")
+DEFAULT_PHONE_REGION = env("DEFAULT_PHONE_REGION", default="IR")
+SMS_BACKEND = env("SMS_BACKEND", default="apps.accounts.delivery.DisabledSMSBackend")
+EMAIL_VERIFICATION_MAX_AGE = 60 * 60 * 24  # signed link lifetime
+PHONE_OTP_TTL = 300
+PHONE_OTP_MAX_ATTEMPTS = 5
+PHONE_OTP_MAX_REQUESTS = 3  # per phone ...
+PHONE_OTP_REQUEST_WINDOW = 600  # ... per 10 minutes
+LOGIN_LOCKOUT_THRESHOLD = 5  # consecutive failures before the first lock
+LOGIN_LOCKOUT_BASE_SECONDS = 60  # doubles with each further failure ...
+LOGIN_LOCKOUT_MAX_SECONDS = 3600  # ... capped at one hour
+MAX_ADDRESSES_PER_USER = 20
+AVATAR_MAX_BYTES = 2 * 1024 * 1024
+AVATAR_MAX_PIXELS = 4096 * 4096
+MEDIA_URL = "media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
 # --------------------------------------------------------------------------
 # CORS (browser -> API on a different origin; allow-list only)
 # --------------------------------------------------------------------------
@@ -251,9 +293,20 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = "same-origin"
 SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
 X_FRAME_OPTIONS = "DENY"
+# Cookie-based browser auth: HttpOnly session cookie + CSRF header (token delivered as JSON by GET /auth/csrf).
+# SameSite=Lax needs the frontend and API on the same site (e.g. shop.example.com + api.example.com).
+# For a different registrable domain use COOKIE_SAMESITE=None (requires HTTPS) - see docs/api/ACCOUNTS_API.md.
+SESSION_COOKIE_NAME = "maral_sid"
+CSRF_COOKIE_NAME = "maral_csrf"
 SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SAMESITE = "Lax"
-CSRF_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = env("COOKIE_SAMESITE", default="Lax")
+CSRF_COOKIE_SAMESITE = SESSION_COOKIE_SAMESITE
+SESSION_COOKIE_DOMAIN = env("SESSION_COOKIE_DOMAIN", default=None)
+CSRF_COOKIE_DOMAIN = env("CSRF_COOKIE_DOMAIN", default=None)
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 14  # idle lifetime, extended by POST /auth/refresh
+SESSION_ABSOLUTE_AGE = 60 * 60 * 24 * 30  # hard cap: re-login required after 30 days
+SESSION_ENGINE = "django.contrib.sessions.backends.db"
 DATA_UPLOAD_MAX_MEMORY_SIZE = 2 * 1024 * 1024
 ADMIN_URL = env("DJANGO_ADMIN_URL", default="admin/")
 
@@ -280,7 +333,6 @@ EXTERNAL_APIS = {
     "namshi_api_key": env("NAMSHI_API_KEY", default=""),
     "currency_rate_provider": env("CURRENCY_RATE_PROVIDER", default="manual"),
     "currency_rate_api_key": env("CURRENCY_RATE_API_KEY", default=""),
-    "sms_provider": env("SMS_PROVIDER", default="console"),
     "sms_api_key": env("SMS_API_KEY", default=""),
 }
 AI_SETTINGS = {
@@ -340,6 +392,11 @@ CELERY_BEAT_SCHEDULE = {
         "task": "common.heartbeat",
         "schedule": float(BEAT_HEARTBEAT_SECONDS),
         "options": {"queue": "default", "expires": BEAT_HEARTBEAT_SECONDS},
+    },
+    "accounts-cleanup": {
+        "task": "accounts.cleanup_expired",
+        "schedule": 60 * 60 * 24.0,
+        "options": {"queue": "default"},
     },
 }
 

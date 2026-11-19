@@ -15,6 +15,7 @@ CORS_ALLOWED_ORIGINS = env.list(
 CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=CORS_ALLOWED_ORIGINS)
 
 EMAIL_BACKEND = env("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
+SMS_BACKEND = env("SMS_BACKEND", default="apps.accounts.delivery.ConsoleSMSBackend")
 STORAGES = {  # noqa: F405 - plain static storage, no manifest, so runserver works without collectstatic
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
     "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},

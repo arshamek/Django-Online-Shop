@@ -39,6 +39,14 @@ def _code_for(exc: Exception, status_code: int) -> str:
     if isinstance(exc, DomainError):
         codes = exc.get_codes()
         return codes if isinstance(codes, str) else exc.default_code
+    if isinstance(exc, (exceptions.NotAuthenticated, exceptions.AuthenticationFailed)):
+        specific = exc.get_codes()
+        if isinstance(specific, str) and specific in {"session_expired", "invalid_credentials"}:
+            return specific
+    if isinstance(exc, exceptions.PermissionDenied):
+        specific = exc.get_codes()
+        if isinstance(specific, str) and specific not in {"permission_denied", "error"}:
+            return specific
     for exc_type, code in _CODE_BY_EXCEPTION:
         if isinstance(exc, exc_type):
             if code == "permission_denied" and str(getattr(exc, "detail", "")).startswith("CSRF Failed"):

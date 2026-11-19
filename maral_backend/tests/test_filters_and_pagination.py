@@ -9,7 +9,7 @@ User = get_user_model()
 
 
 class UserFilter(django_filters.FilterSet):
-    active = django_filters.BooleanFilter(field_name="is_active")
+    active = django_filters.BooleanFilter(field_name="is_staff")
     min_id = django_filters.NumberFilter(field_name="id", lookup_expr="gte")
 
     class Meta:
@@ -20,7 +20,7 @@ class UserFilter(django_filters.FilterSet):
 class _S(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["username"]
+        fields = ["email"]
 
 
 class UserList(generics.ListAPIView):
@@ -29,8 +29,8 @@ class UserList(generics.ListAPIView):
     permission_classes = []
     authentication_classes = []
     filterset_class = UserFilter
-    search_fields = ["username"]
-    ordering_fields = ["username"]
+    search_fields = ["email"]
+    ordering_fields = ["email"]
 
 
 urlpatterns = [path("t/users/", UserList.as_view())]
@@ -44,7 +44,7 @@ def _urls(settings):
 @pytest.fixture
 def users():
     for i in range(30):
-        User.objects.create_user(f"user{i:02d}", password="x" * 12)
+        User.objects.create_user(email=f"user{i:02d}@example.com", password="x" * 12)
 
 
 def test_pagination_shape_defaults(api_client, users):
@@ -70,8 +70,8 @@ def test_out_of_range_page_is_404(api_client, users):
 
 
 def test_filter_applies(api_client, users):
-    User.objects.filter(username="user00").update(is_active=False)
-    assert api_client.get("/t/users/?active=false").json()["count"] == 1
+    User.objects.filter(email="user00@example.com").update(status="suspended")
+    assert api_client.get("/t/users/?active=false").json()["count"] == 30
 
 
 def test_unknown_filter_rejected(api_client, users):
@@ -89,4 +89,4 @@ def test_invalid_filter_value_rejected(api_client, users):
 
 
 def test_reserved_params_allowed(api_client, users):
-    assert api_client.get("/t/users/?q=user0&sort=-username&lang=fa&currency=IRT").status_code == 200
+    assert api_client.get("/t/users/?q=user0&sort=-email&lang=fa&currency=IRT").status_code == 200

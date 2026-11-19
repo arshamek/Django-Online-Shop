@@ -25,7 +25,7 @@ python manage.py makemigrations --check --dry-run
 ```
 
 ## Migrations
-The custom user model (`accounts.User`) exists **before** the first migration, as required (`AUTH_USER_MODEL` cannot be swapped later). The only project migration is `accounts/0001_initial`; Django, admin, sessions and `django_celery_results` migrations come with their packages. The `django_celery_results` tables have not been run on SQL Server yet — treat as part of the first acceptance run.
+The custom user model (`accounts.User`: email/phone identifiers, no username) exists **before** the first production migration. **Phase 3 replaced `accounts/0001_initial`** (Phase 2's version was username-based): any development database that already applied the old file must be dropped and recreated (`docker compose down -v`). Project migrations: `accounts/0001_initial`, `audit/0001_initial`; Django, admin, sessions and `django_celery_results` migrations come with their packages. The `django_celery_results` tables have not been run on SQL Server yet — treat as part of the first acceptance run.
 
 ## SQL Server-specific limitations (from the `mssql-django` docs; see TECHNICAL_DECISIONS §3)
 * No DB-level `on_delete` (`DB_CASCADE`, ...) and the **multiple cascade path** rule (error 1785): use Django-level cascades, PROTECT-first; `manage.py check` reports `fields.E324`.
@@ -38,7 +38,10 @@ The custom user model (`accounts.User`) exists **before** the first migration, a
 * Fixes ship only in the newest `mssql-django` release: pin and upgrade deliberately.
 
 ## Nullable-unique columns
-`User.email` and `User.phone` are nullable and unique. They are declared as `UniqueConstraint(condition=... IS NOT NULL)`, which becomes a filtered unique index on SQL Server (a plain `UNIQUE` would allow only one NULL). `save()` converts `""` to `NULL`. Tests cover this on SQLite; the SQL Server behaviour is spike test T3.
+`User.email`, `User.phone` and `Address.is_default` (one default per user) use `UniqueConstraint(condition=...)`; email/phone are nullable and unique. They are declared as `UniqueConstraint(condition=... IS NOT NULL)`, which becomes a filtered unique index on SQL Server (a plain `UNIQUE` would allow only one NULL). `save()` converts `""` to `NULL`. Tests cover this on SQLite; the SQL Server behaviour is spike test T3.
 
 ## Tests
 `TEST_DATABASE=sqlserver` (default) runs against SQL Server, which can create/drop `test_<DB_NAME>` (the login needs `CREATE DATABASE`). `TEST_DATABASE=sqlite` is a smoke mode only.
+
+## Phase 3 items to verify on SQL Server (not testable in the build sandbox)
+Run `pytest` with `TEST_DATABASE=sqlserver` and check specifically: (1) filtered unique indexes `uniq_user_email_not_null`, `uniq_user_phone_not_null`, `uniq_default_address_per_user`; (2) CHECK constraint `user_has_email_or_phone`; (3) `AuditLog.metadata` (`JSONField` → `nvarchar(max)`, write-only, never filtered); (4) `select_for_update()` row lock used by address mutations; (5) `django_session` and the `django_celery_results` tables; (6) the `post_migrate` role sync (creates 5 groups). All 232 backend tests passed on SQLite only.

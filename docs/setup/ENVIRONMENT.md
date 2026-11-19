@@ -27,6 +27,8 @@ All configuration comes from environment variables (12-factor). `.env.example` i
 | `APP_VERSION`, `GIT_COMMIT` | `0.1.0`, `unknown` | shown by `/health/` |
 | `LOG_LEVEL`, `LOG_JSON` | `INFO`, `true` (dev: `DEBUG`, `false`) | JSON logs in production |
 
+**Accounts / browser auth**: `FRONTEND_BASE_URL` (links in emails), `COOKIE_SAMESITE` (`Lax`; `None` only for cross-site HTTPS deployments), `SESSION_COOKIE_DOMAIN`, `CSRF_COOKIE_DOMAIN` (optional), `TRUSTED_PROXY_COUNT` (reverse proxies in front of Django; `0` ignores `X-Forwarded-For` so client IPs, and therefore rate limits, cannot be spoofed — set it to the real hop count behind a load balancer or every user shares one throttle bucket), `DEFAULT_PHONE_REGION` (`IR`), `SMS_BACKEND` (dotted path; production default `DisabledSMSBackend`, development `ConsoleSMSBackend` prints OTP codes to the log), `THROTTLE_RATE_AUTH_LOGIN|REGISTER|PASSWORD_RESET|VERIFY`. Session/lockout/OTP limits are constants in `base.py`.
+
 **Browser access**: `CORS_ALLOWED_ORIGINS` (empty in prod = none; dev defaults to common local frontend ports), `CSRF_TRUSTED_ORIGINS`. Credentials are allowed, so never use a wildcard origin.
 
 **Database** (`DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`, `DB_DRIVER`, `DB_ENCRYPT`, `DB_TRUST_SERVER_CERTIFICATE`, `DB_CONN_MAX_AGE`, `TEST_DATABASE`) — see [DATABASE.md](DATABASE.md). Defaults are secure: `Encrypt=yes`, `TrustServerCertificate=no`.
@@ -41,7 +43,7 @@ The cache is configured to **fail open**: if Redis is down, cache and throttling
 **Email**: `EMAIL_BACKEND`, `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `EMAIL_USE_TLS`, `DEFAULT_FROM_EMAIL`.
 
 **Reserved for later phases** — read into `settings.EXTERNAL_APIS`, `AI_SETTINGS`, `PAYMENT_SETTINGS`, `STORAGE_SETTINGS`, but **no code uses them yet**; providers default to `fake`/`manual`/`console`/`filesystem`:
-`TRENDYOL_API_KEY`, `NAMSHI_API_KEY` (official API or licensed feed only), `CURRENCY_RATE_PROVIDER`, `CURRENCY_RATE_API_KEY`, `SMS_PROVIDER`, `SMS_API_KEY`, `AI_PROVIDER`, `AI_API_KEY`, `AI_MODEL`, `TRANSLATION_PROVIDER`, `TRANSLATION_API_KEY`, `PAYMENT_GATEWAY`, `PAYMENT_MERCHANT_ID`, `PAYMENT_API_KEY`, `PAYMENT_WEBHOOK_SECRET`, `STORAGE_BACKEND`, `S3_ENDPOINT_URL`, `S3_BUCKET_NAME`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_REGION_NAME`. S3 storage (`django-storages`) is not installed yet.
+`TRENDYOL_API_KEY`, `NAMSHI_API_KEY` (official API or licensed feed only), `CURRENCY_RATE_PROVIDER`, `CURRENCY_RATE_API_KEY`, `SMS_API_KEY`, `AI_PROVIDER`, `AI_API_KEY`, `AI_MODEL`, `TRANSLATION_PROVIDER`, `TRANSLATION_API_KEY`, `PAYMENT_GATEWAY`, `PAYMENT_MERCHANT_ID`, `PAYMENT_API_KEY`, `PAYMENT_WEBHOOK_SECRET`, `STORAGE_BACKEND`, `S3_ENDPOINT_URL`, `S3_BUCKET_NAME`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_REGION_NAME`. S3 storage (`django-storages`) is not installed yet.
 
 **docker-compose only**: `MSSQL_SA_PASSWORD` (required), `SQLSERVER_PORT`, `REDIS_PORT`, `CELERY_CONCURRENCY`, `WEB_CONCURRENCY`.
 

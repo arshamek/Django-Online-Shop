@@ -24,13 +24,21 @@ CELERY_TASK_ALWAYS_EAGER = True
 CELERY_TASK_EAGER_PROPAGATES = False  # failures are recorded on the result like in a worker
 CELERY_TASK_STORE_EAGER_RESULT = True
 
-PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
+PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]  # fast; tests only
 EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+SMS_BACKEND = "apps.accounts.delivery.LocmemSMSBackend"
+MEDIA_ROOT = "/tmp/maral-test-media"
+FRONTEND_BASE_URL = "https://shop.test"
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.InMemoryStorage"},
     "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
 }
-REST_FRAMEWORK = {**_BASE_REST_FRAMEWORK, "DEFAULT_THROTTLE_CLASSES": []}  # throttling tests opt in explicitly
+REST_FRAMEWORK = {
+    **_BASE_REST_FRAMEWORK,
+    "DEFAULT_THROTTLE_CLASSES": [],
+    # scoped IP throttles are effectively off; throttling tests lower individual rates explicitly
+    "DEFAULT_THROTTLE_RATES": {k: "100000/min" for k in _BASE_REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]},
+}
 LOGGING = build_logging_config(level="WARNING", json_logs=False)
 
 # WhiteNoise is only needed where gunicorn serves collected static files (production).

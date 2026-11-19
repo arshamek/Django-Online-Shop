@@ -27,9 +27,13 @@ SECURE_HSTS_SECONDS = env.int("SECURE_HSTS_SECONDS", default=31536000)
 SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool("SECURE_HSTS_INCLUDE_SUBDOMAINS", default=True)
 SECURE_HSTS_PRELOAD = env.bool("SECURE_HSTS_PRELOAD", default=False)
 SESSION_COOKIE_SECURE = True
+SESSION_COOKIE_NAME = "__Secure-maral_sid"  # __Secure- prefix: browsers reject it unless Secure is set
 CSRF_COOKIE_SECURE = True
+CSRF_COOKIE_NAME = "__Secure-maral_csrf"
+if SESSION_COOKIE_SAMESITE.lower() == "none" and not SESSION_COOKIE_SECURE:
+    raise ImproperlyConfigured("COOKIE_SAMESITE=None requires secure cookies.")
 
 API_DOCS_ENABLED = env.bool("API_DOCS_ENABLED", default=False)  # opt in explicitly
 # HSTS preload is a near-irreversible commitment (browser preload lists), so it stays opt-in.
 if not SECURE_HSTS_PRELOAD:
-    SILENCED_SYSTEM_CHECKS = ["security.W021"]
+    SILENCED_SYSTEM_CHECKS = [*SILENCED_SYSTEM_CHECKS, "security.W021"]

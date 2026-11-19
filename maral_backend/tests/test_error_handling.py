@@ -117,7 +117,7 @@ def test_unauthenticated_is_401(client_):
 def test_csrf_failure_code():
     from django.contrib.auth import get_user_model
 
-    user = get_user_model().objects.create_user("csrf-user", password="x" * 12)
+    user = get_user_model().objects.create_user(email="csrf@example.com", password="x" * 12)
     client = APIClient(enforce_csrf_checks=True, raise_request_exception=False)
     client.force_login(user)
     response = client.post("/t/validation/", {"phone": "1", "quantity": 1}, format="json")
@@ -140,19 +140,13 @@ def test_method_not_allowed(client_):
     assert response.json()["error"]["code"] == "method_not_allowed"
 
 
-def test_throttling_returns_429_with_retry_after(settings, client_):
+def test_throttling_returns_429_with_retry_after(monkeypatch):
     from django.core.cache import cache
-    from rest_framework.settings import api_settings
+    from rest_framework.test import APIRequestFactory
+    from rest_framework.throttling import AnonRateThrottle
 
     cache.clear()
-    settings.REST_FRAMEWORK = {
-        **settings.REST_FRAMEWORK,
-        "DEFAULT_THROTTLE_CLASSES": ["rest_framework.throttling.AnonRateThrottle"],
-        "DEFAULT_THROTTLE_RATES": {"anon": "2/min", "user": "2/min"},
-    }
-    assert api_settings.DEFAULT_THROTTLE_CLASSES  # settings reloaded
-    # ApiView reads throttle classes at class-definition time, so use a fresh view
-    from rest_framework.throttling import AnonRateThrottle
+    monkeypatch.setitem(AnonRateThrottle.THROTTLE_RATES, "anon", "2/min")
 
     class Throttled(APIView):
         permission_classes = [AllowAny]
@@ -160,8 +154,6 @@ def test_throttling_returns_429_with_retry_after(settings, client_):
 
         def get(self, request):
             return Response({})
-
-    from rest_framework.test import APIRequestFactory
 
     factory = APIRequestFactory()
     view = Throttled.as_view()
