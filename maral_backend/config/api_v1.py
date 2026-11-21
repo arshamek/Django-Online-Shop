@@ -9,4 +9,5 @@ app_name = "v1"
 urlpatterns = [
     path("", ApiRootView.as_view(), name="root"),
     path("", include("apps.accounts.urls")),
+    path("", include("apps.catalog.urls")),
 ]

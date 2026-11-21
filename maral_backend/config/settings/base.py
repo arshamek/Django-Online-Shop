@@ -48,6 +48,11 @@ LOCAL_APPS = [
     "apps.common",
     "apps.audit",
     "apps.accounts",
+    "apps.categories",
+    "apps.brands",
+    "apps.product_sources",
+    "apps.catalog",
+    "apps.reviews",
 ]
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
@@ -209,6 +214,7 @@ REST_FRAMEWORK = {
         "auth_verify": env("THROTTLE_RATE_AUTH_VERIFY", default="20/hour"),
         "otp_ip": "10/hour",  # conventions: OTP request 10/hour per IP (+ 3 per 10 min per phone, in the service)
         "avatar_upload": "20/hour",
+        "catalog_search": env("THROTTLE_RATE_CATALOG_SEARCH", default="60/min"),
     },
     "DEFAULT_PAGINATION_CLASS": "apps.common.api.pagination.StandardPagination",
     "PAGE_SIZE": 24,
@@ -239,6 +245,7 @@ SPECTACULAR_SETTINGS = {
     "SWAGGER_UI_FAVICON_HREF": "SIDECAR",
     "REDOC_DIST": "SIDECAR",
     "POSTPROCESSING_HOOKS": [
+        "apps.common.api.schema.normalise_path_slashes",
         "apps.common.api.schema.add_error_envelope",
     ],
 }
@@ -265,6 +272,19 @@ AVATAR_MAX_BYTES = 2 * 1024 * 1024
 AVATAR_MAX_PIXELS = 4096 * 4096
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+# --------------------------------------------------------------------------
+# Catalogue (Phase 4)
+# --------------------------------------------------------------------------
+CATALOG_IMAGE_MAX_BYTES = env.int("CATALOG_IMAGE_MAX_BYTES", default=5 * 1024 * 1024)
+CATALOG_IMAGE_MAX_PIXELS = 36_000_000
+CATALOG_MAX_DEEP_PAGE_ITEMS = 10_000  # page * page_size ceiling: OFFSET paging degrades on SQL Server
+CATALOG_MAX_FILTER_VALUES = 20
+CATALOG_MAX_IDS = 50
+CATALOG_SEARCH_MIN_CHARS = 2
+CATALOG_SEARCH_MAX_CHARS = 100
+CATALOG_SEARCH_MAX_TOKENS = 6
+CATALOG_SHOW_MACHINE_TRANSLATIONS = env.bool("CATALOG_SHOW_MACHINE_TRANSLATIONS", default=True)
 
 # --------------------------------------------------------------------------
 # CORS (browser -> API on a different origin; allow-list only)
@@ -349,6 +369,7 @@ PAYMENT_SETTINGS = {
     "webhook_secret": env("PAYMENT_WEBHOOK_SECRET", default=""),
 }
 STORAGE_SETTINGS = {
+    "custom_domain": env("S3_CUSTOM_DOMAIN", default=""),  # CDN host serving the public bucket
     "backend": env("STORAGE_BACKEND", default="filesystem"),
     "endpoint_url": env("S3_ENDPOINT_URL", default=""),
     "bucket_name": env("S3_BUCKET_NAME", default=""),
@@ -356,6 +377,23 @@ STORAGE_SETTINGS = {
     "secret_access_key": env("S3_SECRET_ACCESS_KEY", default=""),
     "region_name": env("S3_REGION_NAME", default=""),
 }
+
+if STORAGE_SETTINGS["backend"] == "s3":
+    # Object storage for product images. Catalogue images are public assets: unsigned URLs (stable, cacheable).
+    STORAGES["default"] = {
+        "BACKEND": "storages.backends.s3.S3Storage",
+        "OPTIONS": {
+            "bucket_name": STORAGE_SETTINGS["bucket_name"],
+            "endpoint_url": STORAGE_SETTINGS["endpoint_url"] or None,
+            "access_key": STORAGE_SETTINGS["access_key_id"],
+            "secret_key": STORAGE_SETTINGS["secret_access_key"],
+            "region_name": STORAGE_SETTINGS["region_name"] or None,
+            "custom_domain": STORAGE_SETTINGS["custom_domain"] or None,
+            "querystring_auth": False,
+            "default_acl": None,
+            "file_overwrite": False,
+        },
+    }
 
 # --------------------------------------------------------------------------
 # Celery (broker: Redis, results + failed-task tracking: database)

@@ -20,3 +20,5 @@ gunicorn==27.0.1
 Pillow==13.0.0                    # avatar validation / re-encoding
 phonenumbers==9.0.43              # E.164 normalisation (Iranian + international)
 argon2-cffi==25.1.0               # Argon2id password hashing
+django-storages==1.14.6               # S3-compatible object storage for product images
+boto3==1.40.0

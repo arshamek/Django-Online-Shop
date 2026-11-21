@@ -81,3 +81,20 @@ def outbox():
 
     mail.outbox.clear()
     return mail.outbox
+
+
+# ---------------------------------------------------------------- catalogue (Phase 4)
+@pytest.fixture
+def demo_catalog(db):
+    """The 16 fictitious products of the frontend mock (apps/catalog/demo.py)."""
+    from apps.catalog.demo import load_demo_catalog
+
+    return load_demo_catalog()
+
+
+@pytest.fixture
+def catalog_api(api_client):
+    def get(path, **params):
+        return api_client.get(f"{API}{path}", params or None)
+
+    return get

@@ -36,14 +36,14 @@ All configuration comes from environment variables (12-factor). `.env.example` i
 **Redis / Celery**: `REDIS_URL` (cache, throttles, readiness), `CACHE_REDIS_URL` (optional override), `CELERY_BROKER_URL` (default = `REDIS_URL`; compose uses DB 1), `BEAT_HEARTBEAT_SECONDS`.
 The cache is configured to **fail open**: if Redis is down, cache and throttling degrade (and log) instead of turning every request into a 500; `/ready/` reports Redis as down. Be aware that rate limiting is effectively off while Redis is unavailable.
 
-**API**: `API_DOCS_ENABLED` (prod default `false`), `THROTTLE_RATE_ANON` (120/min), `THROTTLE_RATE_USER` (300/min) — values from `API_CONVENTIONS.md` §9.
+**API**: `API_DOCS_ENABLED` (prod default `false`), `THROTTLE_RATE_ANON` (120/min), `THROTTLE_RATE_USER` (300/min), `THROTTLE_RATE_CATALOG_SEARCH` (60/min per client on `/products/search`) — values from `API_CONVENTIONS.md` §9.
 
 **Production transport**: `SECURE_SSL_REDIRECT`, `SECURE_HSTS_SECONDS`, `SECURE_HSTS_INCLUDE_SUBDOMAINS`, `SECURE_HSTS_PRELOAD`. TLS terminates at the reverse proxy, which must set `X-Forwarded-Proto` and strip client-supplied copies. `/health/` and `/ready/` are exempt from the redirect.
 
 **Email**: `EMAIL_BACKEND`, `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `EMAIL_USE_TLS`, `DEFAULT_FROM_EMAIL`.
 
 **Reserved for later phases** — read into `settings.EXTERNAL_APIS`, `AI_SETTINGS`, `PAYMENT_SETTINGS`, `STORAGE_SETTINGS`, but **no code uses them yet**; providers default to `fake`/`manual`/`console`/`filesystem`:
-`TRENDYOL_API_KEY`, `NAMSHI_API_KEY` (official API or licensed feed only), `CURRENCY_RATE_PROVIDER`, `CURRENCY_RATE_API_KEY`, `SMS_API_KEY`, `AI_PROVIDER`, `AI_API_KEY`, `AI_MODEL`, `TRANSLATION_PROVIDER`, `TRANSLATION_API_KEY`, `PAYMENT_GATEWAY`, `PAYMENT_MERCHANT_ID`, `PAYMENT_API_KEY`, `PAYMENT_WEBHOOK_SECRET`, `STORAGE_BACKEND`, `S3_ENDPOINT_URL`, `S3_BUCKET_NAME`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_REGION_NAME`. S3 storage (`django-storages`) is not installed yet.
+`TRENDYOL_API_KEY`, `NAMSHI_API_KEY` (official API or licensed feed only), `CURRENCY_RATE_PROVIDER`, `CURRENCY_RATE_API_KEY`, `SMS_API_KEY`, `AI_PROVIDER`, `AI_API_KEY`, `AI_MODEL`, `TRANSLATION_PROVIDER`, `TRANSLATION_API_KEY`, `PAYMENT_GATEWAY`, `PAYMENT_MERCHANT_ID`, `PAYMENT_API_KEY`, `PAYMENT_WEBHOOK_SECRET`, `STORAGE_BACKEND`, `S3_ENDPOINT_URL`, `S3_BUCKET_NAME`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_REGION_NAME`. Product images use the S3 backend when `STORAGE_BACKEND=s3` (`django-storages`, unsigned public URLs; set `S3_CUSTOM_DOMAIN` to serve them through a CDN).
 
 **docker-compose only**: `MSSQL_SA_PASSWORD` (required), `SQLSERVER_PORT`, `REDIS_PORT`, `CELERY_CONCURRENCY`, `WEB_CONCURRENCY`.
 
@@ -52,3 +52,5 @@ The cache is configured to **fail open**: if Redis is down, cache and throttling
 * Logs redact keys that look like credentials (`password`, `token`, `authorization`, `api_key`, `otp`, ...). Request bodies, headers and query strings are never logged.
 * Readiness output exposes only exception class names, never connection strings.
 * Celery stores task arguments in the result table (`CELERY_RESULT_EXTENDED`): pass ids, never PII or secrets, as task arguments.
+
+**Catalogue**: `CATALOG_IMAGE_MAX_BYTES` (upload ceiling, default 5 MiB), `CATALOG_SHOW_MACHINE_TRANSLATIONS` (`true`: unreviewed machine translations are shown and flagged `is_machine_translated`; `false`: only human/approved text, with fallback to the next language). Query bounds (`CATALOG_MAX_*`, search length) are constants in `base.py`.

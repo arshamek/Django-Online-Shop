@@ -62,3 +62,14 @@ def add_error_envelope(result, generator, request, public):
             for status in wanted:
                 responses.setdefault(status, _error_response(status))
     return result
+
+
+def normalise_path_slashes(result, generator, request, public):
+    """Postprocessing hook: document the canonical no-trailing-slash form (routes that also accept a slash
+    are declared with an optional slash in their URL regex, which would otherwise be documented with one)."""
+    paths = result.get("paths", {})
+    for path in list(paths):
+        trimmed = path.rstrip("/")
+        if path.startswith("/api/v1/") and path.endswith("/") and trimmed != "/api/v1" and trimmed not in paths:
+            paths[trimmed] = paths.pop(path)
+    return result
