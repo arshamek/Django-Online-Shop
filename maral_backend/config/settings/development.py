@@ -24,3 +24,5 @@ LOGGING = build_logging_config(level=env("LOG_LEVEL", default="DEBUG"), json_log
 
 # WhiteNoise is only needed where gunicorn serves collected static files (production).
 MIDDLEWARE = [m for m in MIDDLEWARE if "whitenoise" not in m]  # noqa: F405
+
+IMPORTS_ALLOW_FIXTURE_PUBLISH = env.bool("IMPORTS_ALLOW_FIXTURE_PUBLISH", default=True)

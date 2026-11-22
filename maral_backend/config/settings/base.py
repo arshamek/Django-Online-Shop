@@ -53,6 +53,7 @@ LOCAL_APPS = [
     "apps.product_sources",
     "apps.catalog",
     "apps.reviews",
+    "apps.imports",
 ]
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
@@ -355,6 +356,41 @@ EXTERNAL_APIS = {
     "currency_rate_api_key": env("CURRENCY_RATE_API_KEY", default=""),
     "sms_api_key": env("SMS_API_KEY", default=""),
 }
+# --------------------------------------------------------------------------
+# Product import engine (Phase 5). docs/imports/PHASE5_IMPORT_ENGINE.md
+# --------------------------------------------------------------------------
+# "fixture" replays bundled synthetic data and never touches the network. "live" additionally needs the source
+# row to record its authorisation (ProductSource.integration_type + terms_note) and credentials below.
+IMPORTS_PROVIDER_MODE = env("IMPORTS_PROVIDER_MODE", default="fixture")
+# Fixture data must never reach the storefront in production.
+IMPORTS_ALLOW_FIXTURE_PUBLISH = env.bool("IMPORTS_ALLOW_FIXTURE_PUBLISH", default=False)
+IMPORTS_AUTO_PUBLISH = env.bool("IMPORTS_AUTO_PUBLISH", default=False)  # off: staff publish READY_TO_PUBLISH items
+IMPORTS_CREDENTIALS = {  # secrets come from the environment only
+    "trendyol": {
+        "seller_id": env("TRENDYOL_SELLER_ID", default=""),
+        "api_key": env("TRENDYOL_API_KEY", default=""),
+        "api_secret": env("TRENDYOL_API_SECRET", default=""),
+        "integrator": env("TRENDYOL_INTEGRATOR_NAME", default=""),
+        "stage": env.bool("TRENDYOL_STAGE", default=True),
+    },
+    "namshi": {"feed_path": env("NAMSHI_FEED_PATH", default="")},
+}
+IMPORTS_SUPPORTED_CURRENCIES = ("TRY", "AED", "USD", "EUR")
+IMPORTS_TRANSLATION_TARGETS = ("fa", "en", "ar", "tr")
+IMPORTS_REQUIRED_LANGUAGES = ("fa",)  # reviewed translations needed before publication
+IMPORTS_REQUIRE_IMAGE = True
+IMPORTS_TRANSLATION_HANDLER = None  # dotted path `fn(product_id, targets)`; set by the translation phase
+IMPORTS_PRICING_HANDLER = None  # dotted path `fn(product_id, variant_ids)`; set by the pricing phase
+IMPORTS_UNMATCHED_POLICY = "create_draft"  # or "review"
+IMPORTS_MATCH_REVIEW_THRESHOLD = 0.55
+IMPORTS_MATCH_WEAK_THRESHOLD = 0.35
+IMPORTS_PAGE_SIZE = 50
+IMPORTS_SLICE_SECONDS = 120  # work per task run; must stay under CELERY_TASK_SOFT_TIME_LIMIT
+IMPORTS_MAX_ATTEMPTS = 5
+IMPORTS_STALE_JOB_MINUTES = 15
+IMPORTS_LOG_RETENTION_DAYS = 90
+IMPORTS_SCHEDULES = {}  # e.g. {"trendyol": {"job_type": "sync", "every_minutes": 360}}; empty = nothing scheduled
+
 AI_SETTINGS = {
     "provider": env("AI_PROVIDER", default="fake"),
     "api_key": env("AI_API_KEY", default=""),
@@ -421,6 +457,11 @@ CELERY_WORKER_HIJACK_ROOT_LOGGER = False  # keep our structured logging config i
 CELERY_WORKER_SEND_TASK_EVENTS = True  # lets Flower / `celery events` monitor workers
 CELERY_TASK_SEND_SENT_EVENT = True
 CELERY_TASK_DEFAULT_QUEUE = "default"
+CELERY_TASK_ROUTES = {
+    "imports.request_translation": {"queue": "translations"},
+    "imports.request_pricing": {"queue": "pricing"},
+    "imports.*": {"queue": "imports"},
+}
 # Per-domain queues from the approved architecture. Only `default` carries tasks in Phase 2.
 CELERY_QUEUE_NAMES = ["default", "imports", "translations", "pricing", "notifications"]
 BEAT_HEARTBEAT_SECONDS = env.int("BEAT_HEARTBEAT_SECONDS", default=300)
@@ -435,6 +476,26 @@ CELERY_BEAT_SCHEDULE = {
         "task": "accounts.cleanup_expired",
         "schedule": 60 * 60 * 24.0,
         "options": {"queue": "default"},
+    },
+    "imports-run-scheduled": {
+        "task": "imports.run_scheduled",
+        "schedule": 15 * 60.0,
+        "options": {"queue": "imports"},
+    },
+    "imports-recover-stale": {
+        "task": "imports.recover_stale",
+        "schedule": 5 * 60.0,
+        "options": {"queue": "imports"},
+    },
+    "imports-refresh-readiness": {
+        "task": "imports.refresh_readiness",
+        "schedule": 10 * 60.0,
+        "options": {"queue": "imports"},
+    },
+    "imports-purge-logs": {
+        "task": "imports.purge_logs",
+        "schedule": 60 * 60 * 24.0,
+        "options": {"queue": "imports"},
     },
 }
 

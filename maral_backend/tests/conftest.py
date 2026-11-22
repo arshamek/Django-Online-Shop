@@ -98,3 +98,13 @@ def catalog_api(api_client):
         return api_client.get(f"{API}{path}", params or None)
 
     return get
+
+
+@pytest.fixture
+def no_enqueue(monkeypatch):
+    """Import jobs are driven by hand in tests; record what would have been queued instead of running it."""
+    queued = []
+    from apps.imports.services import jobs
+
+    monkeypatch.setattr(jobs, "_enqueue", lambda job, countdown=0: queued.append((job.pk, countdown)))
+    return queued

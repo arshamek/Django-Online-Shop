@@ -1,0 +1,214 @@
+{
+  "_fixture_note": "SYNTHETIC data in the ASSUMED 'maral-namshi-feed v1' shape. The real licensed feed specification is not known yet.",
+  "feed_version": 1,
+  "generated_at": "2026-11-20T00:00:00Z",
+  "currency": "AED",
+  "products": [
+    {
+      "parent_sku": "NSH-ACM-001",
+      "brand_name": "Acme Sport",
+      "brand_code": "acme-sport",
+      "title_en": "Acme Sport Court Sneaker",
+      "title_ar": "حذاء رياضي أكمي",
+      "description_en": "Lightweight court sneaker with a cushioned sole.",
+      "category_path": [
+        "Men",
+        "Shoes",
+        "Sneakers"
+      ],
+      "gender": "men",
+      "manufacturer_code": "",
+      "product_url": "https://www.example-namshi.test/nsh-acm-001",
+      "status": "live",
+      "images": [
+        {
+          "url": "https://img.example.test/nsh-acm-001/1.jpg",
+          "width": 730,
+          "height": 1000
+        },
+        {
+          "url": "https://img.example.test/nsh-acm-001/2.jpg",
+          "width": 730,
+          "height": 1000
+        }
+      ],
+      "variants": [
+        {
+          "partner_sku": "NSH-ACM-001-40",
+          "gtin": "8690000001019",
+          "size": "40",
+          "color_name": "Black",
+          "price": {
+            "currency": "AED",
+            "msrp": 289,
+            "sale": 229
+          },
+          "stock": {
+            "qty": 7
+          }
+        },
+        {
+          "partner_sku": "NSH-ACM-001-41",
+          "gtin": "8690000001026",
+          "size": "41",
+          "color_name": "Black",
+          "price": {
+            "currency": "AED",
+            "msrp": 289,
+            "sale": 229
+          },
+          "stock": {
+            "qty": 2
+          }
+        },
+        {
+          "partner_sku": "NSH-ACM-001-42",
+          "gtin": "8690000001033",
+          "size": "42",
+          "color_name": "Black",
+          "price": {
+            "currency": "AED",
+            "msrp": 289,
+            "sale": 229
+          },
+          "stock": {
+            "qty": 0
+          }
+        }
+      ]
+    },
+    {
+      "parent_sku": "NSH-ACM-002",
+      "brand_name": "Acme Sport",
+      "brand_code": "acme-sport",
+      "title_en": "Acme Sport Training T-Shirt Women",
+      "title_ar": "تيشيرت تدريب أكمي",
+      "description_en": "Breathable training t-shirt for women.",
+      "category_path": [
+        "Women",
+        "Clothing",
+        "T-Shirts"
+      ],
+      "gender": "women",
+      "manufacturer_code": "",
+      "product_url": "https://www.example-namshi.test/nsh-acm-002",
+      "status": "live",
+      "images": [
+        {
+          "url": "https://img.example.test/nsh-acm-002/1.jpg",
+          "width": 730,
+          "height": 1000
+        }
+      ],
+      "variants": [
+        {
+          "partner_sku": "NSH-ACM-002-S",
+          "gtin": "6290000003017",
+          "size": "S",
+          "color_name": "White",
+          "price": {
+            "currency": "AED",
+            "msrp": 89,
+            "sale": 69
+          },
+          "stock": {
+            "qty": 10
+          }
+        },
+        {
+          "partner_sku": "NSH-ACM-002-M",
+          "gtin": "6290000003024",
+          "size": "M",
+          "color_name": "White",
+          "price": {
+            "currency": "AED",
+            "msrp": 89,
+            "sale": 69
+          },
+          "stock": {
+            "qty": 4
+          }
+        }
+      ]
+    },
+    {
+      "parent_sku": "NSH-ORB-001",
+      "brand_name": "Orbit Cosmetics",
+      "brand_code": "orbit",
+      "title_en": "Orbit Hydra Face Cream 50ml",
+      "title_ar": "كريم وجه أوربت",
+      "description_en": "Daily hydrating face cream.",
+      "category_path": [
+        "Beauty",
+        "Skincare"
+      ],
+      "gender": "unisex",
+      "manufacturer_code": "ORB-HYD-50",
+      "product_url": "https://www.example-namshi.test/nsh-orb-001",
+      "status": "live",
+      "images": [
+        {
+          "url": "https://img.example.test/nsh-orb-001/1.jpg",
+          "width": 800,
+          "height": 800
+        }
+      ],
+      "variants": [
+        {
+          "partner_sku": "NSH-ORB-001-50",
+          "gtin": "6290000004014",
+          "size": "50ml",
+          "color_name": "",
+          "price": {
+            "currency": "AED",
+            "msrp": 79,
+            "sale": 79
+          },
+          "stock": {
+            "qty": 25
+          }
+        }
+      ]
+    },
+    {
+      "parent_sku": "NSH-ZPH-001",
+      "brand_name": "Zephyr",
+      "brand_code": "zephyr",
+      "title_en": "Zephyr Running Shorts",
+      "title_ar": "شورت جري زيفير",
+      "description_en": "Quick-dry running shorts.",
+      "category_path": [
+        "Men",
+        "Clothing",
+        "Shorts"
+      ],
+      "gender": "men",
+      "manufacturer_code": "",
+      "product_url": "https://www.example-namshi.test/nsh-zph-001",
+      "status": "inactive",
+      "images": [
+        {
+          "url": "https://img.example.test/nsh-zph-001/1.jpg",
+          "width": 730,
+          "height": 1000
+        }
+      ],
+      "variants": [
+        {
+          "partner_sku": "NSH-ZPH-001-M",
+          "gtin": "",
+          "size": "M",
+          "color_name": "Grey",
+          "price": {
+            "currency": "AED",
+            "msrp": 119,
+            "sale": 99
+          },
+          "stock": {
+            "qty": 0
+          }
+        }
+      ]
+    }
+  ]
+}

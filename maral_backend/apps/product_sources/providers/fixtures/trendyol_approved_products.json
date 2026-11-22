@@ -1,0 +1,624 @@
+{
+  "_fixture_note": "SYNTHETIC data in the documented Trendyol Product V2 'products/approved' response shape. Not captured from the live API.",
+  "content": [
+    {
+      "contentId": 9000001,
+      "productMainId": "ACM-SNK-01",
+      "brand": {
+        "id": 5001,
+        "name": "Acme Sport"
+      },
+      "category": {
+        "id": 1172,
+        "name": "Sneaker"
+      },
+      "creationDate": 1780000000000,
+      "lastModifiedDate": 1790000000000,
+      "lastModifiedBy": "fixture",
+      "title": "Acme Sport Court Sneaker",
+      "description": "<p>Lightweight <b>court</b> sneaker with a cushioned sole.</p>",
+      "images": [
+        {
+          "url": "https://img.example.test/9000001/1.jpg"
+        },
+        {
+          "url": "https://img.example.test/9000001/2.jpg"
+        },
+        {
+          "url": "https://img.example.test/9000001/3.jpg"
+        }
+      ],
+      "attributes": [
+        {
+          "attributeId": 47,
+          "attributeName": "Renk",
+          "attributeValue": "Black"
+        },
+        {
+          "attributeId": 296,
+          "attributeName": "Cinsiyet",
+          "attributeValueId": 2873,
+          "attributeValue": "Erkek"
+        }
+      ],
+      "variants": [
+        {
+          "variantId": 7000101,
+          "supplierId": 99999999,
+          "barcode": "8690000001019",
+          "commission": 12.5,
+          "attributes": [
+            {
+              "attributeId": 293,
+              "attributeName": "Beden",
+              "attributeValueId": 4001,
+              "attributeValue": "40"
+            }
+          ],
+          "productUrl": "https://www.example-trendyol.test/p-9000001",
+          "onSale": true,
+          "channels": [
+            "CORE"
+          ],
+          "deliveryOption": {
+            "deliveryDuration": 2
+          },
+          "stock": {
+            "quantity": 12,
+            "lastModifiedDate": 1790000000000
+          },
+          "price": {
+            "salePrice": 1999.9,
+            "listPrice": 2499.9,
+            "priceSeenByCustomer": 1899.9
+          },
+          "stockCode": "ACM-SNK-01-40",
+          "vatRate": 10,
+          "sellerCreatedDate": 1780000000000,
+          "sellerModifiedDate": 1790000000000,
+          "locked": false,
+          "lockReason": null,
+          "lockDate": null,
+          "archived": false,
+          "archivedDate": null,
+          "docNeeded": false,
+          "hasViolation": false,
+          "blacklisted": false
+        },
+        {
+          "variantId": 7000102,
+          "supplierId": 99999999,
+          "barcode": "8690000001026",
+          "commission": 12.5,
+          "attributes": [
+            {
+              "attributeId": 293,
+              "attributeName": "Beden",
+              "attributeValueId": 4002,
+              "attributeValue": "41"
+            }
+          ],
+          "productUrl": "https://www.example-trendyol.test/p-9000001",
+          "onSale": false,
+          "channels": [
+            "CORE"
+          ],
+          "deliveryOption": {
+            "deliveryDuration": 2
+          },
+          "stock": {
+            "quantity": 0,
+            "lastModifiedDate": 1790000000000
+          },
+          "price": {
+            "salePrice": 1999.9,
+            "listPrice": 2499.9,
+            "priceSeenByCustomer": 1899.9
+          },
+          "stockCode": "ACM-SNK-01-41",
+          "vatRate": 10,
+          "sellerCreatedDate": 1780000000000,
+          "sellerModifiedDate": 1790000000000,
+          "locked": false,
+          "lockReason": null,
+          "lockDate": null,
+          "archived": false,
+          "archivedDate": null,
+          "docNeeded": false,
+          "hasViolation": false,
+          "blacklisted": false
+        },
+        {
+          "variantId": 7000103,
+          "supplierId": 99999999,
+          "barcode": "8690000001033",
+          "commission": 12.5,
+          "attributes": [
+            {
+              "attributeId": 293,
+              "attributeName": "Beden",
+              "attributeValueId": 4003,
+              "attributeValue": "42"
+            }
+          ],
+          "productUrl": "https://www.example-trendyol.test/p-9000001",
+          "onSale": true,
+          "channels": [
+            "CORE"
+          ],
+          "deliveryOption": {
+            "deliveryDuration": 2
+          },
+          "stock": {
+            "quantity": 5,
+            "lastModifiedDate": 1790000000000
+          },
+          "price": {
+            "salePrice": 1999.9,
+            "listPrice": 2499.9,
+            "priceSeenByCustomer": 1899.9
+          },
+          "stockCode": "ACM-SNK-01-42",
+          "vatRate": 10,
+          "sellerCreatedDate": 1780000000000,
+          "sellerModifiedDate": 1790000000000,
+          "locked": false,
+          "lockReason": null,
+          "lockDate": null,
+          "archived": false,
+          "archivedDate": null,
+          "docNeeded": false,
+          "hasViolation": false,
+          "blacklisted": false
+        }
+      ]
+    },
+    {
+      "contentId": 9000002,
+      "productMainId": "ACM-TEE-02",
+      "brand": {
+        "id": 5001,
+        "name": "Acme Sport"
+      },
+      "category": {
+        "id": 73,
+        "name": "Tişört"
+      },
+      "creationDate": 1780000000000,
+      "lastModifiedDate": 1790000000000,
+      "lastModifiedBy": "fixture",
+      "title": "Acme Sport Training T-Shirt",
+      "description": "Breathable training t-shirt.",
+      "images": [
+        {
+          "url": "https://img.example.test/9000002/1.jpg"
+        },
+        {
+          "url": "https://img.example.test/9000002/2.jpg"
+        }
+      ],
+      "attributes": [
+        {
+          "attributeId": 47,
+          "attributeName": "Renk",
+          "attributeValue": "White"
+        },
+        {
+          "attributeId": 296,
+          "attributeName": "Cinsiyet",
+          "attributeValueId": 2873,
+          "attributeValue": "Kadın"
+        }
+      ],
+      "variants": [
+        {
+          "variantId": 7000201,
+          "supplierId": 99999999,
+          "barcode": "8690000002016",
+          "commission": 12.5,
+          "attributes": [
+            {
+              "attributeId": 293,
+              "attributeName": "Beden",
+              "attributeValueId": 4001,
+              "attributeValue": "S"
+            }
+          ],
+          "productUrl": "https://www.example-trendyol.test/p-9000002",
+          "onSale": true,
+          "channels": [
+            "CORE"
+          ],
+          "deliveryOption": {
+            "deliveryDuration": 2
+          },
+          "stock": {
+            "quantity": 8,
+            "lastModifiedDate": 1790000000000
+          },
+          "price": {
+            "salePrice": 449.0,
+            "listPrice": 599.0,
+            "priceSeenByCustomer": 449.0
+          },
+          "stockCode": "ACM-TEE-02-S",
+          "vatRate": 10,
+          "sellerCreatedDate": 1780000000000,
+          "sellerModifiedDate": 1790000000000,
+          "locked": false,
+          "lockReason": null,
+          "lockDate": null,
+          "archived": false,
+          "archivedDate": null,
+          "docNeeded": false,
+          "hasViolation": false,
+          "blacklisted": false
+        },
+        {
+          "variantId": 7000202,
+          "supplierId": 99999999,
+          "barcode": "8690000002023",
+          "commission": 12.5,
+          "attributes": [
+            {
+              "attributeId": 293,
+              "attributeName": "Beden",
+              "attributeValueId": 4002,
+              "attributeValue": "M"
+            }
+          ],
+          "productUrl": "https://www.example-trendyol.test/p-9000002",
+          "onSale": true,
+          "channels": [
+            "CORE"
+          ],
+          "deliveryOption": {
+            "deliveryDuration": 2
+          },
+          "stock": {
+            "quantity": 3,
+            "lastModifiedDate": 1790000000000
+          },
+          "price": {
+            "salePrice": 449.0,
+            "listPrice": 599.0,
+            "priceSeenByCustomer": 449.0
+          },
+          "stockCode": "ACM-TEE-02-M",
+          "vatRate": 10,
+          "sellerCreatedDate": 1780000000000,
+          "sellerModifiedDate": 1790000000000,
+          "locked": false,
+          "lockReason": null,
+          "lockDate": null,
+          "archived": false,
+          "archivedDate": null,
+          "docNeeded": false,
+          "hasViolation": false,
+          "blacklisted": false
+        }
+      ]
+    },
+    {
+      "contentId": 9000003,
+      "productMainId": "NW-JKT-03",
+      "brand": {
+        "id": 5002,
+        "name": "Nordic Wear"
+      },
+      "category": {
+        "id": 119,
+        "name": "Mont"
+      },
+      "creationDate": 1780000000000,
+      "lastModifiedDate": 1790000000000,
+      "lastModifiedBy": "fixture",
+      "title": "Nordic Wear Padded Jacket",
+      "description": "",
+      "images": [
+        {
+          "url": "https://img.example.test/9000003/1.jpg"
+        }
+      ],
+      "attributes": [
+        {
+          "attributeId": 47,
+          "attributeName": "Renk",
+          "attributeValue": "Navy"
+        },
+        {
+          "attributeId": 296,
+          "attributeName": "Cinsiyet",
+          "attributeValueId": 2873,
+          "attributeValue": "Kadın"
+        }
+      ],
+      "variants": [
+        {
+          "variantId": 7000301,
+          "supplierId": 99999999,
+          "barcode": "NW-JKT-M",
+          "commission": 12.5,
+          "attributes": [
+            {
+              "attributeId": 293,
+              "attributeName": "Beden",
+              "attributeValueId": 4001,
+              "attributeValue": "M"
+            }
+          ],
+          "productUrl": "https://www.example-trendyol.test/p-9000003",
+          "onSale": true,
+          "channels": [
+            "CORE"
+          ],
+          "deliveryOption": {
+            "deliveryDuration": 2
+          },
+          "stock": {
+            "quantity": 4,
+            "lastModifiedDate": 1790000000000
+          },
+          "price": {
+            "salePrice": 2799.0,
+            "listPrice": 3299.0,
+            "priceSeenByCustomer": 2799.0
+          },
+          "stockCode": "NW-JKT-M",
+          "vatRate": 10,
+          "sellerCreatedDate": 1780000000000,
+          "sellerModifiedDate": 1790000000000,
+          "locked": false,
+          "lockReason": null,
+          "lockDate": null,
+          "archived": false,
+          "archivedDate": null,
+          "docNeeded": false,
+          "hasViolation": false,
+          "blacklisted": false
+        },
+        {
+          "variantId": 7000302,
+          "supplierId": 99999999,
+          "barcode": "NW-JKT-L",
+          "commission": 12.5,
+          "attributes": [
+            {
+              "attributeId": 293,
+              "attributeName": "Beden",
+              "attributeValueId": 4002,
+              "attributeValue": "L"
+            }
+          ],
+          "productUrl": "https://www.example-trendyol.test/p-9000003",
+          "onSale": false,
+          "channels": [
+            "CORE"
+          ],
+          "deliveryOption": {
+            "deliveryDuration": 2
+          },
+          "stock": {
+            "lastModifiedDate": null
+          },
+          "price": {
+            "salePrice": 2799.0,
+            "listPrice": 3299.0,
+            "priceSeenByCustomer": 2799.0
+          },
+          "stockCode": "NW-JKT-L",
+          "vatRate": 10,
+          "sellerCreatedDate": 1780000000000,
+          "sellerModifiedDate": 1790000000000,
+          "locked": false,
+          "lockReason": null,
+          "lockDate": null,
+          "archived": false,
+          "archivedDate": null,
+          "docNeeded": false,
+          "hasViolation": false,
+          "blacklisted": false
+        }
+      ]
+    },
+    {
+      "contentId": 9000004,
+      "productMainId": "LUM-BED-04",
+      "brand": {
+        "id": 5003,
+        "name": "Lumen Home"
+      },
+      "category": {
+        "id": 880,
+        "name": "Nevresim Takımı"
+      },
+      "creationDate": 1780000000000,
+      "lastModifiedDate": 1790000000000,
+      "lastModifiedBy": "fixture",
+      "title": "Lumen Home Linen Bedding Set",
+      "description": "Pure linen bedding set.",
+      "images": [],
+      "attributes": [
+        {
+          "attributeId": 47,
+          "attributeName": "Renk",
+          "attributeValue": "Beige"
+        },
+        {
+          "attributeId": 296,
+          "attributeName": "Cinsiyet",
+          "attributeValueId": 2873,
+          "attributeValue": "Unisex"
+        }
+      ],
+      "variants": [
+        {
+          "variantId": 7000401,
+          "supplierId": 99999999,
+          "barcode": "LUM-BED-160",
+          "commission": 12.5,
+          "attributes": [
+            {
+              "attributeId": 293,
+              "attributeName": "Beden",
+              "attributeValueId": 4001,
+              "attributeValue": "160 x 220 cm"
+            }
+          ],
+          "productUrl": "https://www.example-trendyol.test/p-9000004",
+          "onSale": true,
+          "channels": [
+            "CORE"
+          ],
+          "deliveryOption": {
+            "deliveryDuration": 2
+          },
+          "stock": {
+            "quantity": 6,
+            "lastModifiedDate": 1790000000000
+          },
+          "price": {
+            "salePrice": 1599.0,
+            "listPrice": 1899.0,
+            "priceSeenByCustomer": 1599.0
+          },
+          "stockCode": "LUM-BED-160",
+          "vatRate": 10,
+          "sellerCreatedDate": 1780000000000,
+          "sellerModifiedDate": 1790000000000,
+          "locked": false,
+          "lockReason": null,
+          "lockDate": null,
+          "archived": false,
+          "archivedDate": null,
+          "docNeeded": false,
+          "hasViolation": false,
+          "blacklisted": false
+        }
+      ]
+    },
+    {
+      "contentId": 9000005,
+      "productMainId": "ZPH-SHT-05",
+      "brand": {
+        "id": 5004,
+        "name": "Zephyr"
+      },
+      "category": {
+        "id": 211,
+        "name": "Şort"
+      },
+      "creationDate": 1780000000000,
+      "lastModifiedDate": 1790000000000,
+      "lastModifiedBy": "fixture",
+      "title": "Zephyr Running Shorts",
+      "description": "Quick-dry running shorts.",
+      "images": [
+        {
+          "url": "https://img.example.test/9000005/1.jpg"
+        }
+      ],
+      "attributes": [
+        {
+          "attributeId": 47,
+          "attributeName": "Renk",
+          "attributeValue": "Grey"
+        },
+        {
+          "attributeId": 296,
+          "attributeName": "Cinsiyet",
+          "attributeValueId": 2873,
+          "attributeValue": "Erkek"
+        }
+      ],
+      "variants": [
+        {
+          "variantId": 7000501,
+          "supplierId": 99999999,
+          "barcode": "ZPH-SHT-M",
+          "commission": 12.5,
+          "attributes": [
+            {
+              "attributeId": 293,
+              "attributeName": "Beden",
+              "attributeValueId": 4001,
+              "attributeValue": "M"
+            }
+          ],
+          "productUrl": "https://www.example-trendyol.test/p-9000005",
+          "onSale": true,
+          "channels": [
+            "CORE"
+          ],
+          "deliveryOption": {
+            "deliveryDuration": 2
+          },
+          "stock": {
+            "quantity": 9,
+            "lastModifiedDate": 1790000000000
+          },
+          "price": {
+            "salePrice": 399.0,
+            "listPrice": 499.0,
+            "priceSeenByCustomer": 399.0
+          },
+          "stockCode": "ZPH-SHT-M",
+          "vatRate": 10,
+          "sellerCreatedDate": 1780000000000,
+          "sellerModifiedDate": 1790000000000,
+          "locked": false,
+          "lockReason": null,
+          "lockDate": null,
+          "archived": false,
+          "archivedDate": null,
+          "docNeeded": false,
+          "hasViolation": false,
+          "blacklisted": false
+        },
+        {
+          "variantId": 7000502,
+          "supplierId": 99999999,
+          "barcode": "ZPH-SHT-L",
+          "commission": 12.5,
+          "attributes": [
+            {
+              "attributeId": 293,
+              "attributeName": "Beden",
+              "attributeValueId": 4002,
+              "attributeValue": "L"
+            }
+          ],
+          "productUrl": "https://www.example-trendyol.test/p-9000005",
+          "onSale": false,
+          "channels": [
+            "CORE"
+          ],
+          "deliveryOption": {
+            "deliveryDuration": 2
+          },
+          "stock": {
+            "quantity": 0,
+            "lastModifiedDate": 1790000000000
+          },
+          "price": {
+            "salePrice": 399.0,
+            "listPrice": 499.0,
+            "priceSeenByCustomer": 399.0
+          },
+          "stockCode": "ZPH-SHT-L",
+          "vatRate": 10,
+          "sellerCreatedDate": 1780000000000,
+          "sellerModifiedDate": 1790000000000,
+          "locked": false,
+          "lockReason": null,
+          "lockDate": null,
+          "archived": true,
+          "archivedDate": 1791000000000,
+          "docNeeded": false,
+          "hasViolation": false,
+          "blacklisted": false
+        }
+      ]
+    }
+  ]
+}
