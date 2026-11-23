@@ -45,3 +45,9 @@ LOGGING = build_logging_config(level="WARNING", json_logs=False)
 MIDDLEWARE = [m for m in MIDDLEWARE if "whitenoise" not in m]  # noqa: F405
 
 IMPORTS_ALLOW_FIXTURE_PUBLISH = True
+
+# Phase 6 hand-offs are exercised explicitly (override_settings) so Phase 5 tests keep their "no handler" baseline.
+IMPORTS_TRANSLATION_HANDLER = None
+IMPORTS_PRICING_HANDLER = None
+CURRENCY_ALLOW_FIXTURE_PROVIDER = True
+TRANSLATION_ALLOW_FAKE_PROVIDER = True

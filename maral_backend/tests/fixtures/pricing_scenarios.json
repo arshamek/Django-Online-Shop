@@ -1,0 +1,84 @@
+{
+  "_comment": "SYNTHETIC financial fixtures. Rates are made-up numbers for tests only, NOT market data. Every expected value was calculated by hand (see docs/pricing/PHASE6_CALCULATION_EXAMPLES.md).",
+  "rates_irr": {"TRY": "15000", "AED": "150000", "USD": "550000", "EUR": "600000"},
+  "scenarios": [
+    {
+      "id": "S1-markup-all-inclusive",
+      "description": "1,000 TRY item; shipping 3,000,000 IRR, customs 10% of (item+shipping), service fee 5% of item, all included in the price; 25% markup; nearest 100,000 IRR.",
+      "ruleset": {"profit_method": "markup", "target_profit_percent": "25", "estimates_policy": "allow", "required_cost_kinds": []},
+      "rules": [
+        {"kind": "shipping", "code": "ship", "calc_method": "fixed", "amount": "3000000", "currency": "IRR", "charge_mode": "included"},
+        {"kind": "customs", "code": "duty", "calc_method": "percent_of_base", "amount": "10", "charge_mode": "included"},
+        {"kind": "service_fee", "code": "svc", "calc_method": "percent_of_item", "amount": "5", "charge_mode": "included"},
+        {"kind": "rounding", "code": "round", "rounding_mode": "nearest", "rounding_step_irr": "100000"}
+      ],
+      "input": {"original_amount": "1000", "original_currency": "TRY"},
+      "expect": {"item_irr": "15000000", "profit_irr": "5137500", "price_before_rounding_irr": "25687500", "rounding_adjustment_irr": "12500",
+                 "unit_price_irr": "25700000", "unit_separate_irr": "0", "internal_cost_irr": "20550000", "realized_profit_irr": "5150000",
+                 "realized_markup_percent": "25.0608", "realized_margin_percent": "20.0389", "publishable": true}
+    },
+    {
+      "id": "S2-margin-all-inclusive",
+      "description": "Same costs as S1 but profit_method = margin 25% (profit is 25% of the SELLING price).",
+      "ruleset": {"profit_method": "margin", "target_profit_percent": "25", "estimates_policy": "allow", "required_cost_kinds": []},
+      "rules": [
+        {"kind": "shipping", "code": "ship", "calc_method": "fixed", "amount": "3000000", "currency": "IRR", "charge_mode": "included"},
+        {"kind": "customs", "code": "duty", "calc_method": "percent_of_base", "amount": "10", "charge_mode": "included"},
+        {"kind": "service_fee", "code": "svc", "calc_method": "percent_of_item", "amount": "5", "charge_mode": "included"},
+        {"kind": "rounding", "code": "round", "rounding_mode": "nearest", "rounding_step_irr": "100000"}
+      ],
+      "input": {"original_amount": "1000", "original_currency": "TRY"},
+      "expect": {"item_irr": "15000000", "profit_irr": "6850000", "price_before_rounding_irr": "27400000", "rounding_adjustment_irr": "0",
+                 "unit_price_irr": "27400000", "internal_cost_irr": "20550000", "realized_profit_irr": "6850000",
+                 "realized_markup_percent": "33.3333", "realized_margin_percent": "25.0000", "publishable": true}
+    },
+    {
+      "id": "S3-shipping-billed-separately",
+      "description": "As S1 but shipping is a separate customer line (not in the product price, no markup on it). Customs is still charged on item+shipping.",
+      "ruleset": {"profit_method": "markup", "target_profit_percent": "25", "estimates_policy": "allow", "required_cost_kinds": []},
+      "rules": [
+        {"kind": "shipping", "code": "ship", "calc_method": "fixed", "amount": "3000000", "currency": "IRR", "charge_mode": "separate"},
+        {"kind": "customs", "code": "duty", "calc_method": "percent_of_base", "amount": "10", "charge_mode": "included"},
+        {"kind": "service_fee", "code": "svc", "calc_method": "percent_of_item", "amount": "5", "charge_mode": "included"},
+        {"kind": "rounding", "code": "round", "rounding_mode": "nearest", "rounding_step_irr": "100000"}
+      ],
+      "input": {"original_amount": "1000", "original_currency": "TRY"},
+      "expect": {"item_irr": "15000000", "profit_irr": "4387500", "price_before_rounding_irr": "21937500", "rounding_adjustment_irr": "-37500",
+                 "unit_price_irr": "21900000", "unit_separate_irr": "3000000", "unit_total_irr": "24900000",
+                 "internal_cost_irr": "17550000", "realized_profit_irr": "4350000", "publishable": true}
+    },
+    {
+      "id": "S4-absorbed-shipping-minimum-profit",
+      "description": "Shipping absorbed by Maral (3,000,000). 10% markup would lose money, so the 2,000,000 IRR minimum profit lifts the price.",
+      "ruleset": {"profit_method": "markup", "target_profit_percent": "10", "estimates_policy": "allow", "required_cost_kinds": []},
+      "rules": [
+        {"kind": "shipping", "code": "ship", "calc_method": "fixed", "amount": "3000000", "currency": "IRR", "charge_mode": "absorbed"},
+        {"kind": "min_profit", "code": "floor", "calc_method": "fixed", "amount": "2000000", "currency": "IRR", "value_status": "confirmed"}
+      ],
+      "input": {"original_amount": "1000", "original_currency": "TRY"},
+      "expect": {"item_irr": "15000000", "profit_irr": "5000000", "unit_price_irr": "20000000", "internal_cost_irr": "18000000",
+                 "realized_profit_irr": "2000000", "min_profit_applied": true, "publishable": true}
+    },
+    {
+      "id": "S5-percent-plus-fixed-markup",
+      "description": "20% markup plus a fixed 500,000 IRR profit on a 1,000 TRY item.",
+      "ruleset": {"profit_method": "markup", "target_profit_percent": "20", "estimates_policy": "allow", "required_cost_kinds": []},
+      "rules": [
+        {"kind": "profit_fixed", "code": "fixed", "calc_method": "fixed", "amount": "500000", "currency": "IRR", "value_status": "confirmed"}
+      ],
+      "input": {"original_amount": "1000", "original_currency": "TRY"},
+      "expect": {"item_irr": "15000000", "profit_irr": "3500000", "unit_price_irr": "18500000", "publishable": true}
+    },
+    {
+      "id": "S6-per-kg-shipping-eur-fee",
+      "description": "Shipping 2,000,000 IRR per kg for a 750 g item, plus a 2 EUR purchase fee (converted at the EUR rate); 25% markup; 1,000 AED item.",
+      "ruleset": {"profit_method": "markup", "target_profit_percent": "25", "estimates_policy": "allow", "required_cost_kinds": []},
+      "rules": [
+        {"kind": "shipping", "code": "ship", "calc_method": "per_kg", "amount": "2000000", "currency": "IRR", "charge_mode": "included"},
+        {"kind": "purchase_fee", "code": "fee", "calc_method": "fixed", "amount": "2", "currency": "EUR", "charge_mode": "included"}
+      ],
+      "input": {"original_amount": "1000", "original_currency": "AED", "weight_grams": 750},
+      "expect": {"item_irr": "150000000", "profit_irr": "38175000", "unit_price_irr": "190875000", "internal_cost_irr": "152700000", "publishable": true}
+    }
+  ]
+}

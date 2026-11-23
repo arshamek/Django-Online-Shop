@@ -54,6 +54,9 @@ LOCAL_APPS = [
     "apps.catalog",
     "apps.reviews",
     "apps.imports",
+    "apps.currencies",
+    "apps.translations",
+    "apps.pricing",
 ]
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
@@ -216,6 +219,8 @@ REST_FRAMEWORK = {
         "otp_ip": "10/hour",  # conventions: OTP request 10/hour per IP (+ 3 per 10 min per phone, in the service)
         "avatar_upload": "20/hour",
         "catalog_search": env("THROTTLE_RATE_CATALOG_SEARCH", default="60/min"),
+        "price_quote": env("THROTTLE_RATE_PRICE_QUOTE", default="60/hour"),
+        "price_calculate": env("THROTTLE_RATE_PRICE_CALCULATE", default="120/min"),
     },
     "DEFAULT_PAGINATION_CLASS": "apps.common.api.pagination.StandardPagination",
     "PAGE_SIZE": 24,
@@ -379,8 +384,8 @@ IMPORTS_SUPPORTED_CURRENCIES = ("TRY", "AED", "USD", "EUR")
 IMPORTS_TRANSLATION_TARGETS = ("fa", "en", "ar", "tr")
 IMPORTS_REQUIRED_LANGUAGES = ("fa",)  # reviewed translations needed before publication
 IMPORTS_REQUIRE_IMAGE = True
-IMPORTS_TRANSLATION_HANDLER = None  # dotted path `fn(product_id, targets)`; set by the translation phase
-IMPORTS_PRICING_HANDLER = None  # dotted path `fn(product_id, variant_ids)`; set by the pricing phase
+IMPORTS_TRANSLATION_HANDLER = "apps.translations.handlers.import_translation_handler"  # `fn(product_id, targets)`
+IMPORTS_PRICING_HANDLER = "apps.pricing.handlers.import_pricing_handler"  # `fn(product_id, variant_ids)`
 IMPORTS_UNMATCHED_POLICY = "create_draft"  # or "review"
 IMPORTS_MATCH_REVIEW_THRESHOLD = 0.55
 IMPORTS_MATCH_WEAK_THRESHOLD = 0.35
@@ -390,6 +395,23 @@ IMPORTS_MAX_ATTEMPTS = 5
 IMPORTS_STALE_JOB_MINUTES = 15
 IMPORTS_LOG_RETENTION_DAYS = 90
 IMPORTS_SCHEDULES = {}  # e.g. {"trendyol": {"job_type": "sync", "every_minutes": 360}}; empty = nothing scheduled
+
+# --------------------------------------------------------------------------
+# Currencies, translation, pricing (Phase 6). docs/pricing/PHASE6_*.md
+# --------------------------------------------------------------------------
+# The "fixture" rate provider replays configured numbers and is never a real market source.
+CURRENCY_ALLOW_FIXTURE_PROVIDER = env.bool("CURRENCY_ALLOW_FIXTURE_PROVIDER", default=False)
+# Hosts an `http_json` rate source may call. Empty = no outbound rate requests at all.
+CURRENCY_HTTP_ALLOWED_HOSTS = env.list("CURRENCY_HTTP_ALLOWED_HOSTS", default=[])
+CURRENCY_FUTURE_TOLERANCE_SECONDS = 120  # a provider timestamp further ahead than this is rejected
+# Secrets for rate sources: env var CURRENCY_CRED_<CREDENTIAL_REF> (never stored in the database).
+TRANSLATION_PROVIDER = env("TRANSLATION_PROVIDER", default="fake")  # fake | llm
+TRANSLATION_LLM_BASE_URL = env("TRANSLATION_LLM_BASE_URL", default="https://api.anthropic.com")
+TRANSLATION_PROMPT_VERSION = "v1"
+TRANSLATION_MAX_ATTEMPTS = 5
+TRANSLATION_STALE_JOB_MINUTES = 15
+TRANSLATION_MAX_CHARS = 8000
+TRANSLATION_ALLOW_FAKE_PROVIDER = env.bool("TRANSLATION_ALLOW_FAKE_PROVIDER", default=False)
 
 AI_SETTINGS = {
     "provider": env("AI_PROVIDER", default="fake"),
@@ -461,6 +483,9 @@ CELERY_TASK_ROUTES = {
     "imports.request_translation": {"queue": "translations"},
     "imports.request_pricing": {"queue": "pricing"},
     "imports.*": {"queue": "imports"},
+    "translations.*": {"queue": "translations"},
+    "currencies.*": {"queue": "pricing"},
+    "pricing.*": {"queue": "pricing"},
 }
 # Per-domain queues from the approved architecture. Only `default` carries tasks in Phase 2.
 CELERY_QUEUE_NAMES = ["default", "imports", "translations", "pricing", "notifications"]
@@ -496,6 +521,22 @@ CELERY_BEAT_SCHEDULE = {
         "task": "imports.purge_logs",
         "schedule": 60 * 60 * 24.0,
         "options": {"queue": "imports"},
+    },
+    # Phase 6
+    "currencies-refresh-due": {
+        "task": "currencies.refresh_due",
+        "schedule": 60.0,  # each source has its own poll interval; this only checks which are due
+        "options": {"queue": "pricing"},
+    },
+    "pricing-expire-quotes": {
+        "task": "pricing.expire_quotes",
+        "schedule": 5 * 60.0,
+        "options": {"queue": "pricing"},
+    },
+    "translations-recover": {
+        "task": "translations.recover",
+        "schedule": 5 * 60.0,
+        "options": {"queue": "translations"},
     },
 }
 

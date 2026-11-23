@@ -26,3 +26,5 @@ LOGGING = build_logging_config(level=env("LOG_LEVEL", default="DEBUG"), json_log
 MIDDLEWARE = [m for m in MIDDLEWARE if "whitenoise" not in m]  # noqa: F405
 
 IMPORTS_ALLOW_FIXTURE_PUBLISH = env.bool("IMPORTS_ALLOW_FIXTURE_PUBLISH", default=True)
+CURRENCY_ALLOW_FIXTURE_PROVIDER = env.bool("CURRENCY_ALLOW_FIXTURE_PROVIDER", default=True)  # noqa: F405
+TRANSLATION_ALLOW_FAKE_PROVIDER = env.bool("TRANSLATION_ALLOW_FAKE_PROVIDER", default=True)  # noqa: F405
