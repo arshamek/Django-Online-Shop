@@ -51,3 +51,8 @@ IMPORTS_TRANSLATION_HANDLER = None
 IMPORTS_PRICING_HANDLER = None
 CURRENCY_ALLOW_FIXTURE_PROVIDER = True
 TRANSLATION_ALLOW_FAKE_PROVIDER = True
+
+# Phase 7: the fake payment provider exists only here (and in development via env), never by default.
+PAYMENTS_ALLOW_FAKE_PROVIDER = True
+PAYMENTS_DEFAULT_PROVIDER = "fake"
+PAYMENTS_FAKE_WEBHOOK_SECRET = "test-webhook-secret"

@@ -57,6 +57,13 @@ LOCAL_APPS = [
     "apps.currencies",
     "apps.translations",
     "apps.pricing",
+    # Phase 7
+    "apps.inventory",
+    "apps.shipping",
+    "apps.cart",
+    "apps.wishlist",
+    "apps.orders",
+    "apps.payments",
 ]
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
@@ -221,6 +228,12 @@ REST_FRAMEWORK = {
         "catalog_search": env("THROTTLE_RATE_CATALOG_SEARCH", default="60/min"),
         "price_quote": env("THROTTLE_RATE_PRICE_QUOTE", default="60/hour"),
         "price_calculate": env("THROTTLE_RATE_PRICE_CALCULATE", default="120/min"),
+        # Phase 7
+        "cart": env("THROTTLE_RATE_CART", default="120/min"),
+        "cart_create": env("THROTTLE_RATE_CART_CREATE", default="30/hour"),  # anonymous carts are the abuse surface
+        "checkout": env("THROTTLE_RATE_CHECKOUT", default="30/min"),
+        "order_create": env("THROTTLE_RATE_ORDER_CREATE", default="20/hour"),
+        "payment_webhook": env("THROTTLE_RATE_PAYMENT_WEBHOOK", default="600/min"),
     },
     "DEFAULT_PAGINATION_CLASS": "apps.common.api.pagination.StandardPagination",
     "PAGE_SIZE": 24,
@@ -538,7 +551,45 @@ CELERY_BEAT_SCHEDULE = {
         "schedule": 5 * 60.0,
         "options": {"queue": "translations"},
     },
+    # Phase 7
+    "orders-expire-unpaid": {
+        "task": "orders.expire_unpaid",
+        "schedule": 60.0,
+        "options": {"queue": "default"},
+    },
+    "orders-expire-checkouts": {
+        "task": "orders.expire_checkouts",
+        "schedule": 5 * 60.0,
+        "options": {"queue": "default"},
+    },
+    "inventory-expire-reservations": {
+        "task": "inventory.expire_reservations",
+        "schedule": 5 * 60.0,
+        "options": {"queue": "default"},
+    },
+    "cart-purge-stale": {
+        "task": "cart.purge_stale",
+        "schedule": 60 * 60 * 24.0,
+        "options": {"queue": "default"},
+    },
 }
+
+# --------------------------------------------------------------------------
+# Phase 7 - cart, checkout, orders, payments (docs/orders/PHASE7_OVERVIEW.md). Every number below is a
+# configurable default, not a confirmed business rule; the ones that need an owner decision are listed in
+# docs/orders/PHASE7_DECISIONS.md.
+# --------------------------------------------------------------------------
+CART_MAX_LINES = env.int("CART_MAX_LINES", default=50)  # must stay <= pricing quote MAX_ITEMS
+CART_MAX_QUANTITY_PER_LINE = env.int("CART_MAX_QUANTITY_PER_LINE", default=99)  # must stay <= pricing MAX_QTY
+CART_GUEST_TTL_DAYS = env.int("CART_GUEST_TTL_DAYS", default=30)
+WISHLIST_MAX_ITEMS = env.int("WISHLIST_MAX_ITEMS", default=200)
+ORDER_PAYMENT_WINDOW_MINUTES = env.int("ORDER_PAYMENT_WINDOW_MINUTES", default=30)  # also the stock-hold time
+ORDER_RETURN_WINDOW_DAYS = env.int("ORDER_RETURN_WINDOW_DAYS", default=14)  # 0 disables customer return refunds
+ORDER_NON_RETURNABLE_CATEGORY_SLUGS = env.list("ORDER_NON_RETURNABLE_CATEGORY_SLUGS", default=[])
+# Proxy-purchase orders: the customer may not cancel once staff started buying (PURCHASE_PENDING and later).
+PAYMENTS_ALLOW_FAKE_PROVIDER = env.bool("PAYMENTS_ALLOW_FAKE_PROVIDER", default=False)  # never true in production
+PAYMENTS_DEFAULT_PROVIDER = env("PAYMENTS_DEFAULT_PROVIDER", default="")
+PAYMENTS_FAKE_WEBHOOK_SECRET = env("PAYMENTS_FAKE_WEBHOOK_SECRET", default="")
 
 # --------------------------------------------------------------------------
 # Logging (structured JSON; request/correlation ids injected via contextvars)

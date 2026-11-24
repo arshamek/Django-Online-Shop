@@ -37,3 +37,7 @@ API_DOCS_ENABLED = env.bool("API_DOCS_ENABLED", default=False)  # opt in explici
 # HSTS preload is a near-irreversible commitment (browser preload lists), so it stays opt-in.
 if not SECURE_HSTS_PRELOAD:
     SILENCED_SYSTEM_CHECKS = [*SILENCED_SYSTEM_CHECKS, "security.W021"]
+
+# Phase 7: the fake payment provider moves no money; refuse to boot with it enabled.
+if PAYMENTS_ALLOW_FAKE_PROVIDER:  # noqa: F405
+    raise ImproperlyConfigured("PAYMENTS_ALLOW_FAKE_PROVIDER must be false in production.")

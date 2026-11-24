@@ -14,4 +14,9 @@ urlpatterns = [
     path("", include("apps.currencies.urls")),
     path("", include("apps.pricing.urls")),
     path("", include("apps.translations.urls")),
+    # Phase 7
+    path("", include("apps.cart.urls")),
+    path("", include("apps.wishlist.urls")),
+    path("", include("apps.orders.urls")),
+    path("", include("apps.payments.urls")),
 ]
