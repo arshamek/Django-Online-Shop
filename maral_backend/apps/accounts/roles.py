@@ -13,8 +13,8 @@ SUPER_ADMIN = "Super Admin"
 ROLE_PERMISSIONS: dict[str, list[str]] = {
     "Product Manager": ["catalog_manage"],
     "Import Manager": ["imports_manage", "imports_review_matches"],
-    "Finance Manager": ["pricing_manage", "payments_view", "refunds_manage", "orders_view"],
-    "Order Manager": ["orders_view", "orders_manage", "customers_view"],
+    "Finance Manager": ["pricing_manage", "payments_view", "payments_manage", "refunds_manage", "orders_view"],
+    "Order Manager": ["orders_view", "orders_manage", "shipping_manage", "shipments_manage", "customers_view"],
     "Customer Support": ["customers_view", "customers_suspend", "customers_unlock", "orders_view"],
 }
 ALL_ROLES = [SUPER_ADMIN, *ROLE_PERMISSIONS]

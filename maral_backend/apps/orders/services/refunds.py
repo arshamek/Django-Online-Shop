@@ -199,6 +199,9 @@ def complete(refund: Refund, staff, provider_ref: str = "") -> Refund:
     new_total = order.refunded_irr + refund.amount_irr
     if new_total > order.total_irr:
         raise BusinessRuleViolation("Refunds would exceed the order total.", code="refund_exceeds_order")
+    from apps.payments import refunds as payment_refunds
+
+    payment_refunds.record_completion(refund, provider_ref, staff)  # keeps the payment's refunded totals in step
     refund.status, refund.completed_at, refund.provider_ref = RefundStatus.COMPLETED, timezone.now(), provider_ref[:120]
     refund.save(update_fields=["status", "completed_at", "provider_ref"])
     target = S.REFUNDED if new_total == order.total_irr else S.PARTIALLY_REFUNDED
@@ -211,16 +214,17 @@ def complete(refund: Refund, staff, provider_ref: str = "") -> Refund:
 
 
 def execute_with_provider(refund: Refund, staff) -> Refund:
-    """Ask the payment provider to send the money back (only providers that support it), then complete."""
-    from apps.payments.models import PaymentStatus
-    from apps.payments.providers import registry
+    """Ask the payment provider to send the money back (only providers that support it), then complete.
 
-    refund = Refund.objects.select_related("order__checkout").get(pk=refund.pk)
-    payment = refund.order.checkout.payments.filter(status=PaymentStatus.CAPTURED).first()
-    if payment is None:
-        raise BusinessRuleViolation("No captured payment found.", code="nothing_to_refund")
-    provider = registry.available().get(payment.provider)
-    if provider is None or not provider.supports_refund:
-        raise BusinessRuleViolation("This provider needs a manual refund; record it with 'complete'.", code="manual_refund_required")
-    result = provider.refund(payment, refund.amount_irr, str(refund.public_id))
-    return complete(refund, staff, provider_ref=result.provider_ref)
+    Safe to repeat: a completed refund is a conflict, and a provider refund that succeeded but whose completion crashed is
+    picked up again without a second request to the provider (payments.refunds is idempotent per refund).
+    """
+    from apps.payments import refunds as payment_refunds
+
+    refund = Refund.objects.get(pk=refund.pk)
+    if refund.status == RefundStatus.COMPLETED:
+        raise Conflict("This refund has already been completed.", code="refund_already_completed")
+    if refund.status != RefundStatus.APPROVED:
+        raise Conflict("Only an approved refund can be sent to the provider.", code="invalid_refund_state")
+    payment_refund = payment_refunds.execute(refund, staff)
+    return complete(refund, staff, provider_ref=payment_refund.provider_ref)

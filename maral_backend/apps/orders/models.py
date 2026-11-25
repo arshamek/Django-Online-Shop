@@ -48,6 +48,7 @@ class Checkout(models.Model):
     shipping_label = models.CharField(max_length=120, blank=True)
     shipping_fee_irr = irr()
     shipping_value_status = models.CharField(max_length=10, blank=True)
+    shipping_snapshot = models.JSONField(default=dict, blank=True, help_text="Zone, delivery range, tracking rule and customs status as shown at checkout.")
     display_currency = models.CharField(max_length=3)
     merchandise_irr = irr()
     separate_charges_irr = irr(default=Decimal("0"))
@@ -100,6 +101,7 @@ class Order(models.Model):
     shipping_address = models.JSONField(default=dict)
     shipping_method_code = models.CharField(max_length=40)
     shipping_label = models.CharField(max_length=120, blank=True)
+    shipping_snapshot = models.JSONField(default=dict, blank=True, help_text="Zone, delivery range, tracking rule and customs status as shown at checkout.")
 
     display_currency = models.CharField(max_length=3)
     display_rate = models.DecimalField(max_digits=24, decimal_places=10, null=True, blank=True)

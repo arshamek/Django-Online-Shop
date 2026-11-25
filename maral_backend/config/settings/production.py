@@ -41,3 +41,10 @@ if not SECURE_HSTS_PRELOAD:
 # Phase 7: the fake payment provider moves no money; refuse to boot with it enabled.
 if PAYMENTS_ALLOW_FAKE_PROVIDER:  # noqa: F405
     raise ImproperlyConfigured("PAYMENTS_ALLOW_FAKE_PROVIDER must be false in production.")
+
+# Phase 8: mocks move no money and ship nothing; callbacks must be reachable over https.
+if SHIPPING_ALLOW_MOCK_CARRIER:  # noqa: F405
+    raise ImproperlyConfigured("SHIPPING_ALLOW_MOCK_CARRIER must be false in production.")
+if PAYMENT_PROVIDER_ADAPTERS and not PAYMENTS_CALLBACK_BASE_URL.startswith("https://"):  # noqa: F405
+    # Only when a real provider is installed: its callbacks must reach this backend over https.
+    raise ImproperlyConfigured("PAYMENTS_CALLBACK_BASE_URL must be an https URL when payment provider adapters are configured.")

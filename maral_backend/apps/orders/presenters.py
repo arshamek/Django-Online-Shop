@@ -73,6 +73,20 @@ def order_summary(order: Order, ctx) -> dict:
     }
 
 
+def delivery_info(order: Order) -> dict:
+    """What the customer was told at checkout. A range exists only if one was configured; never an exact date."""
+    snap = order.shipping_snapshot or {}
+    customs = dict(snap.get("customs") or {})
+    customs.pop("amount_irr", None)
+    return {
+        "method": order.shipping_method_code,
+        "label": order.shipping_label,
+        "estimate": snap.get("delivery") or {"status": "unknown", "min_days": None, "max_days": None, "unit": "business_days"},
+        "customs": customs or None,
+        "zone": snap.get("zone") or None,
+    }
+
+
 def order_detail(order: Order, ctx) -> dict:
     cur = ctx.currency
     show = order.quote.rule_set.customer_breakdown
@@ -82,7 +96,7 @@ def order_detail(order: Order, ctx) -> dict:
         "checkout_id": str(order.checkout.public_id),
         "items": [_item(i, cur, show) for i in order.items.all()],
         "shipping_address": order.shipping_address,
-        "delivery": {"method": order.shipping_method_code, "label": order.shipping_label},
+        "delivery": {"method": order.shipping_method_code, "label": order.shipping_label, **{k: v for k, v in delivery_info(order).items() if k in ("estimate", "customs")}},
         "totals": {
             "items": money(order.items_subtotal_irr, cur),
             "separate_charges": money(order.separate_charges_irr, cur),
@@ -147,4 +161,9 @@ def tracking(order: Order, ctx) -> dict:
         else {"min_days": min(mins), "max_days": max(maxs), "unit": items[0].expected_days_unit, "from": order.paid_at or order.placed_at},
         "carrier": order.tracking_carrier or None,
         "tracking_number": order.tracking_number or None,
+        "shipments": [_shipment_brief(s) for s in order.shipments.all()],
     }
+
+
+def _shipment_brief(s) -> dict:
+    return {"id": str(s.public_id), "status": s.status, "carrier": s.carrier or None, "tracking_number": s.tracking_number or None, "tracking_url": s.tracking_url or None}

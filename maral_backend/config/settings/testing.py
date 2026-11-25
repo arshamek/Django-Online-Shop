@@ -56,3 +56,8 @@ TRANSLATION_ALLOW_FAKE_PROVIDER = True
 PAYMENTS_ALLOW_FAKE_PROVIDER = True
 PAYMENTS_DEFAULT_PROVIDER = "fake"
 PAYMENTS_FAKE_WEBHOOK_SECRET = "test-webhook-secret"
+
+# Phase 8: mock adapters + their secrets exist only in tests.
+SHIPPING_ALLOW_MOCK_CARRIER = True
+PAYMENT_PROVIDER_CREDENTIALS = {"mock_intl": {"webhook_secret": "test-intl-secret"}}
+PAYMENTS_CALLBACK_BASE_URL = "https://api.test.invalid"

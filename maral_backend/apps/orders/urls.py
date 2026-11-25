@@ -13,6 +13,8 @@ urlpatterns = [
     path("orders/<str:ref>", c.OrderDetailView.as_view(), name="order-detail"),
     path("orders/<str:ref>/tracking", c.OrderTrackingView.as_view(), name="order-tracking"),
     path("orders/<str:ref>/history", c.OrderHistoryView.as_view(), name="order-history"),
+    path("orders/<str:ref>/payments", c.OrderPaymentsView.as_view(), name="order-payments"),
+    path("orders/<str:ref>/shipments", c.OrderShipmentsView.as_view(), name="order-shipments"),
     path("orders/<str:ref>/cancel", c.OrderCancelView.as_view(), name="order-cancel"),
     path("orders/<str:ref>/refunds", c.OrderRefundsView.as_view(), name="order-refunds"),
     # staff

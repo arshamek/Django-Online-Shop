@@ -17,6 +17,7 @@ from apps.accounts.views.base import NoStoreMixin
 from apps.catalog.context import get_context
 from apps.common.api.pagination import StandardPagination
 from apps.common.exceptions import BusinessRuleViolation, DomainError
+from apps.payments import presenters as payment_presenters
 from apps.payments import services as payment_services
 
 from .. import presenters
@@ -86,23 +87,29 @@ class CheckoutDetailView(CustomerBase):
         return Response(checkout_service.present(get_checkout(request, checkout_id)))
 
 
+class PaymentStartIn(serializers.Serializer):
+    provider = serializers.SlugField(max_length=30, required=False, allow_blank=True, default="")
+
+
 class CheckoutPaymentView(CustomerBase):
-    @extend_schema(tags=TAG, summary="Start (or resume) payment for a checkout's unpaid orders. Header: Idempotency-Key", request=None, responses={201: dict})
+    @extend_schema(
+        tags=TAG,
+        summary="Start (or resume) payment for a checkout's unpaid orders. Header: Idempotency-Key; optional body {provider}",
+        request=PaymentStartIn,
+        responses={201: dict},
+    )
     def post(self, request, checkout_id):
+        body = PaymentStartIn(data=request.data or {})
+        body.is_valid(raise_exception=True)
         checkout = get_checkout(request, checkout_id)
-        payment = payment_services.initiate(checkout, request.user, idempotency_key=request.headers.get("Idempotency-Key", "").strip())
+        payment = payment_services.initiate(
+            checkout, request.user, idempotency_key=request.headers.get("Idempotency-Key", "").strip(), provider_key=body.validated_data["provider"]
+        )
         return Response(payment_out(payment), status=201)
 
 
 def payment_out(payment) -> dict:
-    return {
-        "id": str(payment.public_id),
-        "provider": payment.provider,
-        "status": payment.status,
-        "amount_irr": str(payment.amount_irr),
-        "redirect_url": payment.redirect_url,
-        "expires_at": payment.expires_at,
-    }
+    return payment_presenters.payment_out(payment)
 
 
 # --------------------------------------------------------------------------------------------- orders
@@ -110,6 +117,7 @@ class OrderCreateIn(serializers.Serializer):
     checkout_id = serializers.UUIDField()
     accepted_total_irr = serializers.DecimalField(max_digits=18, decimal_places=0, required=False)
     initiate_payment = serializers.BooleanField(default=True)
+    payment_provider = serializers.SlugField(max_length=30, required=False, allow_blank=True, default="")
 
 
 class OrdersView(CustomerBase):
@@ -141,7 +149,7 @@ class OrdersView(CustomerBase):
         payment, payment_error = None, None
         if v["initiate_payment"]:
             try:
-                payment = payment_out(payment_services.initiate(get_checkout(request, v["checkout_id"]), request.user, idempotency_key=f"order:{key}"[:80]))
+                payment = payment_out(payment_services.initiate(get_checkout(request, v["checkout_id"]), request.user, idempotency_key=f"order:{key}"[:80], provider_key=v["payment_provider"]))
             except DomainError as exc:  # orders exist and stay payable; the client can retry via the checkout payment endpoint
                 payment_error = exc.get_codes() if hasattr(exc, "get_codes") else "payment_unavailable"
         response = Response({**body, "payment": payment, "payment_error": payment_error}, status=200 if replayed else status)
@@ -227,3 +235,35 @@ class OrderRefundsView(CustomerBase):
             order, request.user, [(i["order_item_id"], i["quantity"]) for i in data.validated_data["items"]], data.validated_data["reason"]
         )
         return Response(presenters.refund_out(refund, get_context(request).currency), status=201)
+
+
+class OrderPaymentsView(CustomerBase):
+    @extend_schema(tags=TAG, summary="Payment attempts for an order's checkout, newest first, with each attempt's ledger", responses={200: dict})
+    def get(self, request, ref):
+        order = get_order(request, ref)
+        payments = order.checkout.payments.prefetch_related("transactions", "refunds").order_by("-created_at")
+        return Response(
+            {
+                "order": order.code,
+                "payments": [
+                    {
+                        **payment_presenters.payment_out(p),
+                        "events": [payment_presenters.transaction_out(t) for t in p.transactions.all() if t.kind != "verify"],
+                        "refunds": [payment_presenters.refund_out(r) for r in p.refunds.all() if r.status in ("succeeded", "manual")],
+                    }
+                    for p in payments
+                ],
+            }
+        )
+
+
+class OrderShipmentsView(CustomerBase):
+    @extend_schema(tags=TAG, summary="Shipments of an order: carrier, tracking number / link, status and history", responses={200: dict})
+    def get(self, request, ref):
+        from apps.shipping.presenters import shipment_out
+
+        order = get_order(request, ref)
+        ctx = get_context(request)
+        lang = "fa" if str(ctx.lang).startswith("fa") else "en"
+        rows = order.shipments.prefetch_related("events")
+        return Response({"order": order.code, "delivery": presenters.delivery_info(order), "shipments": [shipment_out(s, lang) for s in rows]})

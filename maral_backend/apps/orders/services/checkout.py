@@ -24,6 +24,8 @@ from apps.common.exceptions import BusinessRuleViolation
 from apps.currencies.models import Currency
 from apps.pricing.models import PriceQuoteComponent
 from apps.pricing.services import quotes
+from apps.shipping import addresses
+from apps.shipping.services import international
 from apps.shipping.services import methods as shipping
 
 from ..models import Checkout, CheckoutStatus
@@ -58,11 +60,16 @@ def address_snapshot(address: Address) -> dict:
 
 
 def validate_address(address: Address) -> None:
-    missing = [f for f in ("recipient_name", "phone", "country", "city", "address_line1") if not getattr(address, f)]
-    if address.country == "IR" and not address.postal_code:
-        missing.append("postal_code")  # Iranian delivery needs the 10-digit postal code
-    if missing:
-        raise BusinessRuleViolation("The delivery address is incomplete.", code="address_incomplete", fields={f: ["Required."] for f in missing})
+    """Country-aware delivery address rules (configurable per country; Persian digits and letters are normalised)."""
+    addresses.validate({f: getattr(address, f, "") for f in addresses.KNOWN_FIELDS})
+
+
+def _customs_totals(quote) -> tuple[Decimal, Decimal]:
+    """(estimated, confirmed) customs from the quote's components: estimates and confirmed values are never mixed."""
+    rows = PriceQuoteComponent.objects.filter(item__quote=quote, kind="customs").select_related("item")
+    estimated = sum((c.amount_irr * c.item.quantity for c in rows if c.value_status == "estimated"), Decimal(0))
+    confirmed = sum((c.amount_irr * c.item.quantity for c in rows if c.value_status != "estimated"), Decimal(0))
+    return estimated, confirmed
 
 
 def validate_cart(cart: Cart):
@@ -105,8 +112,10 @@ def build_checkout(user, *, address_id, shipping_method: str, currency: str = "I
     if address is None:
         raise NotFound("Address not found.")
     validate_address(address)
-    if not any(o.code == shipping_method for o in shipping.options(address.country, Decimal(0))):
-        raise BusinessRuleViolation("This delivery method is not available for the address.", code="shipping_method_unavailable")
+    ship_kwargs = {"region": address.province, "city": address.city, "postal_code": address.postal_code, "items": shipping.items_from_cart(items)}
+    early = shipping.resolve(address.country, Decimal(0), only=shipping_method, **ship_kwargs)
+    if not early.options and not shipping.has_subtotal_tiers(shipping_method):
+        shipping.quote(shipping_method, address.country, Decimal(0), **ship_kwargs)  # raises the precise reason
     if not Currency.objects.filter(code=currency, is_active=True, is_display=True).exists():
         raise BusinessRuleViolation("Unsupported display currency.", code="unsupported_currency")
 
@@ -118,8 +127,10 @@ def build_checkout(user, *, address_id, shipping_method: str, currency: str = "I
         shipping_method=shipping_method,
         now=now,
     )
-    ship = shipping.quote(shipping_method, address.country, quote.subtotal_irr)  # 5
+    ship = shipping.quote(shipping_method, address.country, quote.subtotal_irr, **ship_kwargs)  # 5
     customs = _components_total(quote, "customs")  # 6 (estimate / confirmed flag lives on the quote)
+    est_customs, conf_customs = _customs_totals(quote)
+    customs_block = international.customs_info(address.country, estimated_irr=est_customs, confirmed_irr=conf_customs)
     discount = _discount(items, quote)
     total = quote.subtotal_irr + quote.separate_irr + ship.fee_irr
 
@@ -127,6 +138,7 @@ def build_checkout(user, *, address_id, shipping_method: str, currency: str = "I
     if ship.value_status == "estimated":
         warnings.append("shipping_fee_estimated")
     warnings.append("taxes_not_modeled")
+    warnings.extend(international.customs_warnings(customs_block))
 
     lines = [
         {
@@ -145,6 +157,7 @@ def build_checkout(user, *, address_id, shipping_method: str, currency: str = "I
         quote=quote, address=address, address_snapshot=address_snapshot(address),
         customer_snapshot={"name": full_name or address.recipient_name, "phone": user.phone or address.phone, "email": user.email or ""},
         shipping_method_code=ship.code, shipping_label=ship.label(), shipping_fee_irr=ship.fee_irr, shipping_value_status=ship.value_status,
+        shipping_snapshot={**ship.snapshot(), "customs": customs_block},
         display_currency=currency, merchandise_irr=quote.subtotal_irr, separate_charges_irr=quote.separate_irr,
         customs_estimate_irr=customs, discount_irr=discount, total_irr=total,
         has_estimated_costs=quote.has_estimated_costs or ship.value_status == "estimated",
@@ -187,6 +200,8 @@ def present(checkout: Checkout, *, preview: bool = False) -> dict:
             "total": money(checkout.total_irr, cur),
             "total_irr": str(checkout.total_irr),
         },
+        "delivery": _delivery_block(checkout),
+        "customs": _customs_view(checkout, cur),
         "taxes": {"status": "not_modeled"},
         "has_estimated_costs": checkout.has_estimated_costs,
         "warnings": checkout.warnings,
@@ -194,3 +209,18 @@ def present(checkout: Checkout, *, preview: bool = False) -> dict:
     if not preview:
         body.update(id=str(checkout.public_id), status=checkout.status, expires_at=checkout.expires_at, quote_id=str(checkout.quote.public_id))
     return body
+
+
+def _delivery_block(checkout: Checkout) -> dict:
+    snap = checkout.shipping_snapshot or {}
+    return snap.get("delivery") or {"status": "unknown", "min_days": None, "max_days": None, "unit": "business_days"}
+
+
+def _customs_view(checkout: Checkout, cur: str) -> dict:
+    """Estimated / confirmed / payable-on-delivery / unknown stay distinct; an amount exists only when rules produced one."""
+    info = dict((checkout.shipping_snapshot or {}).get("customs") or {})
+    if not info:
+        return {"status": "unknown", "amount": None, "is_estimate": False, "notice": ""}
+    amount = info.pop("amount_irr", None)
+    info["amount"] = None if amount is None else money(Decimal(amount), cur)
+    return info

@@ -73,3 +73,10 @@ prove every status is reachable per order type, and try the forbidden jumps.
 * A rejected refund returns the order to its previous status; cancellation/late-payment refunds cannot be rejected.
 * Completing a refund never exceeds the order total (also a DB CHECK). Physically restocking returned goods is a
   manual staff decision (not automated).
+
+
+## Phase 8 additions
+* **Shipments drive delivery.** A shipment moving to `in_transit` moves a `READY_TO_SHIP` order to `SHIPPED`; when every non-cancelled shipment is `delivered` the order moves to `DELIVERED`. Marking the order `SHIPPED` / `DELIVERED` directly (the Phase 7 way) creates / updates the shipment, so there is never a second shipment.
+* **Tracking rule.** If the order's shipping method has `requires_tracking`, `READY_TO_SHIP → SHIPPED` fails with `tracking_required` unless a tracking number is supplied.
+* **Payment expiry** now verifies each live payment with its provider first: a payment the provider reports as paid is captured and its orders move to `PAID` instead of being cancelled.
+* Details: `docs/shipping/SHIPPING_AND_INTERNATIONAL.md`, `docs/payments/PHASE8_PAYMENTS.md`.

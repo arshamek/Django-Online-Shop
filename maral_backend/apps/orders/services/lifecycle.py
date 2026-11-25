@@ -46,6 +46,7 @@ def expire_unpaid(now=None) -> int:
 
     now = now or timezone.now()
     count = 0
+    expire_payments(now)  # first: a payment the provider reports as paid is captured instead of expired
     due = Order.objects.filter(status=S.PENDING_PAYMENT, payment_due_at__lte=now).order_by("id")
     for order in due:
         try:
@@ -53,7 +54,6 @@ def expire_unpaid(now=None) -> int:
             count += 1
         except Exception as exc:  # one bad order must not block the others; it is retried next run
             logger.error("order_expiry_failed", order=order.code, error=type(exc).__name__)
-    expire_payments(now)
     return count
 
 

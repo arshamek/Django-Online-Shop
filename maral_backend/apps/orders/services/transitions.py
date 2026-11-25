@@ -66,9 +66,12 @@ def transition(
         if ref:
             missing.update(source_order_ref=ref[:120])
     elif to_status == S.SHIPPED:
+        from apps.shipping.services import shipments
+
         order.shipped_at = now
         order.tracking_carrier = str(metadata.get("tracking_carrier", order.tracking_carrier))[:60]
         order.tracking_number = str(metadata.get("tracking_number", order.tracking_number))[:80]
+        shipments.assert_can_ship(order, order.tracking_number)  # a method that requires tracking cannot ship without it
         fields |= {"shipped_at", "tracking_carrier", "tracking_number"}
     elif to_status == S.DELIVERED and current != S.REFUND_PENDING:
         order.delivered_at = now
@@ -96,6 +99,14 @@ def transition(
         ProcurementRecord.objects.filter(order_item__order=order).update(status=ProcurementStatus.PURCHASED, purchased_at=now, buyer=actor if getattr(actor, "is_authenticated", False) else None)
     elif to_status == S.CANCELLED and current != S.REFUND_PENDING:
         _on_cancelled(order, current, actor_type, actor, reason)
+    elif to_status == S.SHIPPED:
+        from apps.shipping.services import shipments
+
+        shipments.on_order_shipped(order, actor_type, actor)
+    elif to_status == S.DELIVERED and current != S.REFUND_PENDING:
+        from apps.shipping.services import shipments
+
+        shipments.on_order_delivered(order, actor)
     order.refresh_from_db()
     logger.info("order_transition", order=order.code, from_status=current, to_status=to_status, actor_type=actor_type)
     return order

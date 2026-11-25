@@ -515,6 +515,16 @@ CELERY_BEAT_SCHEDULE = {
         "schedule": 60 * 60 * 24.0,
         "options": {"queue": "default"},
     },
+    "payments-reconcile": {
+        "task": "payments.reconcile",
+        "schedule": env.int("PAYMENTS_RECONCILE_INTERVAL_MINUTES", default=15) * 60.0,
+        "options": {"queue": "default"},
+    },
+    "shipping-sync-tracking": {
+        "task": "shipping.sync_tracking",
+        "schedule": env.int("SHIPPING_TRACKING_SYNC_MINUTES", default=30) * 60.0,
+        "options": {"queue": "default"},
+    },
     "imports-run-scheduled": {
         "task": "imports.run_scheduled",
         "schedule": 15 * 60.0,
@@ -590,6 +600,23 @@ ORDER_NON_RETURNABLE_CATEGORY_SLUGS = env.list("ORDER_NON_RETURNABLE_CATEGORY_SL
 PAYMENTS_ALLOW_FAKE_PROVIDER = env.bool("PAYMENTS_ALLOW_FAKE_PROVIDER", default=False)  # never true in production
 PAYMENTS_DEFAULT_PROVIDER = env("PAYMENTS_DEFAULT_PROVIDER", default="")
 PAYMENTS_FAKE_WEBHOOK_SECRET = env("PAYMENTS_FAKE_WEBHOOK_SECRET", default="")
+
+# --- Phase 8: payment providers and shipping --------------------------------------------------------------------
+# Real provider adapters are plain Python classes listed by dotted path; none ships enabled. A listed adapter is still
+# unusable until an administrator creates its PaymentProviderConfig AND records verified merchant eligibility.
+PAYMENT_PROVIDER_ADAPTERS = env.list("PAYMENT_PROVIDER_ADAPTERS", default=[])
+# Provider credentials: server-side only, from the environment, never in the database or an API response.
+# JSON object keyed by adapter key, e.g. {"my_gateway": {"merchant_id": "...", "api_key": "...", "webhook_secret": "..."}}
+PAYMENT_PROVIDER_CREDENTIALS = env.json("PAYMENT_PROVIDER_CREDENTIALS", default={})
+# Public URL of THIS backend as the provider / customer's browser reaches it (https in production).
+PAYMENTS_CALLBACK_BASE_URL = env("PAYMENTS_CALLBACK_BASE_URL", default="http://localhost:8000").rstrip("/")
+PAYMENTS_RESULT_PATH = env(
+    "PAYMENTS_RESULT_PATH", default="/checkout/payment-result"
+)  # storefront page after a provider return
+PAYMENTS_RECONCILE_INTERVAL_MINUTES = env.int("PAYMENTS_RECONCILE_INTERVAL_MINUTES", default=15)
+SHIPPING_PROVIDER_ADAPTERS = env.list("SHIPPING_PROVIDER_ADAPTERS", default=[])  # real carrier adapters (dotted paths)
+SHIPPING_ALLOW_MOCK_CARRIER = env.bool("SHIPPING_ALLOW_MOCK_CARRIER", default=False)  # never true in production
+SHIPPING_TRACKING_SYNC_MINUTES = env.int("SHIPPING_TRACKING_SYNC_MINUTES", default=30)
 
 # --------------------------------------------------------------------------
 # Logging (structured JSON; request/correlation ids injected via contextvars)

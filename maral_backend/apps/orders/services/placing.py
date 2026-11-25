@@ -92,7 +92,7 @@ def create_orders(user, *, checkout_id, accepted_total_irr=None, now=None) -> li
             code=codes.next_code(), checkout=checkout, user=user, order_type=order_type, quote=quote,
             customer_name=checkout.customer_snapshot.get("name", ""), customer_phone=checkout.customer_snapshot.get("phone", ""),
             customer_email=checkout.customer_snapshot.get("email", ""), shipping_address=checkout.address_snapshot,
-            shipping_method_code=checkout.shipping_method_code, shipping_label=checkout.shipping_label,
+            shipping_method_code=checkout.shipping_method_code, shipping_label=checkout.shipping_label, shipping_snapshot=checkout.shipping_snapshot,
             display_currency=checkout.display_currency, display_rate=quote.display_rate, display_rate_source=quote.display_rate_source,
             items_subtotal_irr=Decimal(0), separate_charges_irr=Decimal(0), shipping_irr=ship_share, discount_irr=Decimal(0), total_irr=ship_share,
             has_estimated_costs=any(quote_items[i.variant_id].has_estimated_costs for i in lines) or checkout.shipping_value_status == "estimated",
