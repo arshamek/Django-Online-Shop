@@ -64,6 +64,7 @@ LOCAL_APPS = [
     "apps.wishlist",
     "apps.orders",
     "apps.payments",
+    "apps.ai_assistant",  # Phase 9
 ]
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
@@ -234,6 +235,10 @@ REST_FRAMEWORK = {
         "checkout": env("THROTTLE_RATE_CHECKOUT", default="30/min"),
         "order_create": env("THROTTLE_RATE_ORDER_CREATE", default="20/hour"),
         "payment_webhook": env("THROTTLE_RATE_PAYMENT_WEBHOOK", default="600/min"),
+        # Phase 9
+        "ai_chat": env("THROTTLE_RATE_AI_CHAT", default="20/min"),
+        "ai_read": env("THROTTLE_RATE_AI_READ", default="120/min"),
+        "ai_inquiry": env("THROTTLE_RATE_AI_INQUIRY", default="10/hour"),
     },
     "DEFAULT_PAGINATION_CLASS": "apps.common.api.pagination.StandardPagination",
     "PAGE_SIZE": 24,
@@ -432,6 +437,8 @@ AI_SETTINGS = {
     "model": env("AI_MODEL", default=""),
     "translation_provider": env("TRANSLATION_PROVIDER", default="fake"),
     "translation_api_key": env("TRANSLATION_API_KEY", default=""),
+    # Phase 9 shopping assistant (server-side only; the key is never stored in the database or returned by an API)
+    "base_url": env("AI_BASE_URL", default="https://api.anthropic.com"),
 }
 PAYMENT_SETTINGS = {
     "gateway": env("PAYMENT_GATEWAY", default="fake"),
@@ -544,6 +551,12 @@ CELERY_BEAT_SCHEDULE = {
         "task": "imports.purge_logs",
         "schedule": 60 * 60 * 24.0,
         "options": {"queue": "imports"},
+    },
+    # Phase 9: delete AI conversations past the configured retention window
+    "ai-purge-conversations": {
+        "task": "ai_assistant.purge_expired_conversations",
+        "schedule": 60 * 60 * 24.0,
+        "options": {"queue": "default"},
     },
     # Phase 6
     "currencies-refresh-due": {

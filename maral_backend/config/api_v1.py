@@ -20,4 +20,6 @@ urlpatterns = [
     path("", include("apps.orders.urls")),
     path("", include("apps.payments.urls")),
     path("", include("apps.shipping.urls")),
+    # Phase 9
+    path("", include("apps.ai_assistant.urls")),
 ]

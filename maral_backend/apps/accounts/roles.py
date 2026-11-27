@@ -11,7 +11,7 @@ from django.contrib.auth.models import Group, Permission
 SUPER_ADMIN = "Super Admin"
 
 ROLE_PERMISSIONS: dict[str, list[str]] = {
-    "Product Manager": ["catalog_manage"],
+    "Product Manager": ["catalog_manage", "ai_manage"],
     "Import Manager": ["imports_manage", "imports_review_matches"],
     "Finance Manager": ["pricing_manage", "payments_view", "payments_manage", "refunds_manage", "orders_view"],
     "Order Manager": ["orders_view", "orders_manage", "shipping_manage", "shipments_manage", "customers_view"],

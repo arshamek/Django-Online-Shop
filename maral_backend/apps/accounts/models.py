@@ -259,4 +259,5 @@ class StaffPermissions(models.Model):
             ("refunds_manage", "Can create and approve refunds"),
             ("orders_view", "Can view orders"),
             ("orders_manage", "Can change order status and procurement"),
+            ("ai_manage", "Can configure the AI shopping assistant and handle purchase inquiries"),
         ]
